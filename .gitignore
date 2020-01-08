@@ -3,8 +3,12 @@
 **/__pycache__
 **/*.cmd
 **/*.o
+**/*.obj
+**/*.so
+**/*.pyd
 **/*.stpl
 **/.vscode
+**/build
 /examples/**/numenv
 /examples/**/*.stpl
 /examples/**/csv_files
@@ -12,3 +16,8 @@
 /examples/**/config_inputs
 /smbd/numenv/cpp_eigen/numerics/tests
 /tests
+
+build
+dist
+# Egg metadata
+*.egg-info
