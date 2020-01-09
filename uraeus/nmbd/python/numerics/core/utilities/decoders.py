@@ -5,7 +5,7 @@
 # Standard library imports
 import json
 
-# 3rd party library imports
+# Third party library imports
 import numpy as np
 
 # Local applicataion imports

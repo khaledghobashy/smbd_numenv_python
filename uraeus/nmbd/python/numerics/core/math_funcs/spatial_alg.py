@@ -6,6 +6,7 @@ Created on Sat Apr 27 18:57:47 2019
 @author: khaledghobashy
 """
 
+# Third party imports.
 import numpy as np
 
 def skew_matrix(v):

@@ -5,18 +5,24 @@ Created on Tue Jan  1 13:21:35 2019
 @author: khale
 """
 
+# Standard library imports.
 import sys
 import time
 
+# Third party imports.
 import numpy as np
 import scipy as sc
 import pandas as pd
+import numba
 
 #from scipy.sparse.linalg import spsolve
 
+# Local imports.
 from ..math_funcs.numba_funcs import matrix_assembler
 
-import numba
+
+###############################################################################
+###############################################################################
 
 @numba.njit(cache=True)
 def solve(A, b):
@@ -29,7 +35,8 @@ def progress_bar(steps, i, t0):
     length=(100*(1+i)//(4*steps))
     percentage=100*(1+i)//steps
     t = time.perf_counter() - t0
-    sys.stdout.write("[%-25s] %d%%, (%s/%s) steps. ET = %.5s (s)" % ('='*length,percentage,i+1, steps, t))
+    format_ = ('='*length,percentage,i+1, steps, t)
+    sys.stdout.write("[%-25s] %d%%, (%s/%s) steps. ET = %.5s (s)" % format_)
     sys.stdout.flush()
 
 ###############################################################################

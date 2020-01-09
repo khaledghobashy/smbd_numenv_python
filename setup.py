@@ -25,6 +25,7 @@ setuptools.setup(
     install_requires=[
           'uraeus.smbd>=0.0.dev1',
           'numpy',
+          'scipy',
           'numba',
-      ],
+          'pandas'],
 )

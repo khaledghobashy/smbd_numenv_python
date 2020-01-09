@@ -6,10 +6,13 @@ Created on Sat Apr 27 18:52:02 2019
 @author: khaledghobashy
 """
 
+# Standard library imports.
 from collections import namedtuple
 
+# Third party imports.
 import numpy as np
 
+# Local imports.
 from .spatial_alg import triad, centered, oriented
 from .numba_funcs import A, dcm2ep
 

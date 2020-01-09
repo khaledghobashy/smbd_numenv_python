@@ -11,9 +11,6 @@ import os
 import shutil
 import textwrap
 
-# Local applicataion imports
-from smbd import pkg_path
-
 # Local directories imports
 from . import generators
 
@@ -59,13 +56,8 @@ class standalone_project(object):
                 import numpy as np
                 import pandas as pd
                 
-                try:
-                    from smbd.numenv.python.numerics.core.systems import multibody_system, simulation
-                except ModuleNotFoundError:
-                    import sys
-                    sys.path.append('{pkg_path}')
-                    from smbd.numenv.python.numerics.core.systems import multibody_system, simulation
-
+                
+                from uraeus.numenv.python.numerics.core.systems import multibody_system, simulation
                 from src import topology, configuration
                 
                 
@@ -94,9 +86,7 @@ class standalone_project(object):
             
         '''        
         text = text.expandtabs()
-        text = textwrap.dedent(text)
-        text = text.format(pkg_path = pkg_path)
-        
+        text = textwrap.dedent(text)        
         
         file_path = os.path.join(self.code_dir, 'main')
         file_name = '%s.py'%file_path
