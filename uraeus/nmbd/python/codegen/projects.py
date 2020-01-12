@@ -11,24 +11,31 @@ import os
 import shutil
 import textwrap
 
-# Local directories imports
+# Third party imports
+import cloudpickle
+
+# Local application imports
 from . import generators
+
+##########################################################################
+
+def load_pickled_data(file):
+    with open(file, 'rb') as f:
+        instance = cloudpickle.load(f)
+    return instance
+
+##########################################################################
 
 
 class standalone_project(object):
     
-    def __init__(self, parent_dir=''):
+    def __init__(self, stpl_file, parent_dir=''):
         
         self.parent_dir = parent_dir
         self.code_dir = os.path.join(self.parent_dir, 'numenv', 'python')
-    
-    
-    def _create_subdirs(self):
-        for d in ['src']:
-            subdir = os.path.join(self.code_dir, d)
-            if not os.path.exists(subdir):
-                os.makedirs(subdir)  
-    
+
+        self._load_symbolic_topology(stpl_file)
+        
     def create_dirs(self, clean=False):
         if os.path.exists(self.code_dir):
             if clean:
@@ -39,17 +46,22 @@ class standalone_project(object):
         self._write_init_file()
             
         
-    def write_topology_code(self, topology):
+    def write_topology_code(self):
+        topology = self.topology
         src_path = os.path.join(self.code_dir, 'src')
         codegen = generators.template_codegen(topology)
         codegen.write_code_file(src_path)
     
+    def _create_subdirs(self):
+        for d in ['src']:
+            subdir = os.path.join(self.code_dir, d)
+            if not os.path.exists(subdir):
+                os.makedirs(subdir)
     
-    def write_configuration_code(self, config):
-        src_path = os.path.join(self.code_dir, 'src')
-        codegen = generators.configuration_codegen(config)
-        codegen.write_code_file(src_path)
-        
+    def _load_symbolic_topology(self, stpl_file):
+        instance = load_pickled_data(stpl_file)
+        self.topology = instance.topology
+            
     
     def write_mainfile(self):
         text = '''
@@ -57,12 +69,11 @@ class standalone_project(object):
                 import pandas as pd
                 
                 
-                from uraeus.numenv.python.numerics.core.systems import multibody_system, simulation
-                from src import topology, configuration
+                from uraeus.numenv.python import multibody_system, simulation, configuration
+                #from src import topology, configuration
                 
                 
                 num_model  = multibody_system(topology)
-                num_config = configuration.configuration()
                 
                 num_model.topology.config = num_config
                 
