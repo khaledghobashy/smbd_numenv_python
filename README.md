@@ -1,6 +1,6 @@
 # **URAEUS** | NMBD-Py
 
-***Numerical simulation environment of constrained multi-body systems in python.***
+**Numerical Multi-Body Dynamics in Python** | A numerical simulation environment of constrained multi-body systems.
 
 ## Description
 
