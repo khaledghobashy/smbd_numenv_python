@@ -60,6 +60,7 @@ class standalone_project(object):
     
     def _load_symbolic_topology(self, stpl_file):
         instance = load_pickled_data(stpl_file)
+        instance.assemble()
         self.topology = instance.topology
             
     
