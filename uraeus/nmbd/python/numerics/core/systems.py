@@ -84,7 +84,7 @@ class configuration(object):
     
     def construct_from_json(self, json_file, assemble=False):
 
-        self.decoded_data = JSON_Decoder(json_file)
+        self.decoded_data = JSON_Decoder(json_file, self)
 
         if not assemble:
             _attributes = self.decoded_data.user_inputs.keys()
@@ -101,6 +101,6 @@ class configuration(object):
                                       self.decoded_data.outputs.keys())
         
         for key in _attributes:
-            value = getattr(self.decoded_data, key)
+            value = getattr(self, key)
             setattr(self, key, value)
 

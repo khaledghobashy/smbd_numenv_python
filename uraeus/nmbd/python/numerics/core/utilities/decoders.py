@@ -10,7 +10,7 @@ import numpy as np
 
 # Local applicataion imports
 from ..math_funcs.spatial_alg import centered, oriented, mirrored
-from ..math_funcs.geometries import cylinder_geometry
+from ..math_funcs.geometries import cylinder_geometry, triangular_prism
 
 ###############################################################################
 
@@ -31,6 +31,10 @@ class constructors(object):
     @classmethod
     def Cylinder_Geometry(cls, args):
         return cylinder_geometry(*args)
+    
+    @classmethod
+    def Triangular_Prism(cls, args):
+        return triangular_prism(*args)
     
     @classmethod
     def Lambda(cls, args):
@@ -55,8 +59,9 @@ class constructors(object):
 
 class JSON_Decoder(object):
 
-    def __init__(self, json_file):
+    def __init__(self, json_file, config):
         self.file = json_file
+        self.config = config
         self._initialize()
     
     def assemble(self):
@@ -71,6 +76,7 @@ class JSON_Decoder(object):
         self._construct_data(self.user_inputs, is_inputs=True)
     
     def _construct_data(self, data_dict, is_inputs=False):
+        config = self.config
         for key, data in data_dict.items():
             if isinstance(data, dict):
                 constructor_name = data['constructor']
@@ -80,22 +86,23 @@ class JSON_Decoder(object):
                     args = constructor_args
                 else:
                     if constructor_name == 'getattribute':
-                        obj  = getattr(self, constructor_args[0])
+                        obj  = getattr(config, constructor_args[0])
                         attr = constructor_args[1]
                         args = [obj, attr]
                     else:
-                        args = [getattr(self, arg) for arg in constructor_args]
+                        args = [getattr(config, arg) for arg in constructor_args]
                 
                 constructor = self.get_constructor(constructor_name)
                 value = constructor(args)
                 
             elif isinstance(data, (int, float, str, bool)):
                 if isinstance(data, str):
-                    value = getattr(self, data)
+                    value = getattr(config, data)
                 else:
                     value = data
             
             setattr(self, key, value)
+            setattr(config, key, value)
 
 
     @staticmethod
