@@ -8,7 +8,7 @@ short_description = 'Numerical simulation environment of constrained multi-body 
 setuptools.setup(
     name = "uraeus.nmbd.python",
     namespace_packages=['uraeus', 'uraeus.nmbd'],
-    version = "0.0.1.dev2",
+    version = "0.0.1.dev3",
     author = "Khaled Ghobashy",
     author_email = "khaled.ghobashy@live.com",
     description = short_description,
