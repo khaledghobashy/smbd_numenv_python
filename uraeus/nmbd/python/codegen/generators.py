@@ -540,7 +540,7 @@ class assembly_codegen(template_codegen):
                 import numpy as np
                 from numpy.linalg import multi_dot
                 
-                from smbd.numenv.python.numerics.core.math_funcs import G
+                from uraeus.nmbd.python.numerics.core.math_funcs import G
                                 
                 {templates_imports}
                 
@@ -549,7 +549,7 @@ class assembly_codegen(template_codegen):
                 '''
         indent = 4*' '
         tpl_import_prefix = 'from ..templates'
-        templates_imports = '\n'.join(['%s.%s import %s'%(tpl_import_prefix, i, i)
+        templates_imports = '\n'.join(['%s import %s'%(tpl_import_prefix, i)
                                         for i in self.templates])
         
         subsystems = ['%s = %s.topology(%r)'%(subsys, template, subsys)\
@@ -617,7 +617,7 @@ class assembly_codegen(template_codegen):
                 def set_initial_states(self):
                     for sub in self.subsystems:
                         sub.set_initial_states()
-                    coordinates = [sub.config.q for sub in self.subsystems if len(sub.config.q)!=0]
+                    coordinates = [sub.q0 for sub in self.subsystems if len(sub.q0)!=0]
                     self.q0 = np.concatenate([self.R_ground,self.P_ground,*coordinates])
                 
                 def initialize(self):
