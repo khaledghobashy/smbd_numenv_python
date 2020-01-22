@@ -121,54 +121,36 @@ class standalone_project(object):
 
 
 class templatebased_project(object):
-    
-    def __init__(self, database_dir, topology, config):
-        
+    def __init__(self, database_dir):
         self._parent_dir = os.path.abspath(database_dir)
-        self._topology = topology.topology
-        self._config = config.config
-
-        self._template_name = topology.name
-        self._code_dir = os.path.join(self._parent_dir, 'numenv', 'python', 'models')
+        self._code_dir = os.path.join(self._parent_dir, 'numenv', 'python')
         self._templates_dir  = os.path.join(self._code_dir, 'templates')
         self._assemblies_dir = os.path.join(self._code_dir, 'assemblies')
     
     def create(self):
         self.create_dirs()
         self.write_topology_code()
-        self.write_configuration_code()
-    
     
     def create_dirs(self, clean=False):
-        if os.path.exists(self._code_dir):
-            if clean:
-                shutil.rmtree(self.code_dir)
-                self._create_template_dir()
-                self._write_init_file()
-        self._create_template_dir()
-        self._write_init_file()
+        if not os.path.exists(self._templates_dir):
+            os.makedirs(self._templates_dir)
+        if not os.path.exists(self._assemblies_dir):
+            os.makedirs(self._assemblies_dir)
             
-        
-    def write_topology_code(self):
-        src_path = self._source_dir
-        codegen = generators.template_codegen(self._topology)
+    def write_topology_code(self, stpl_file):
+        src_path = self._templates_dir
+        instance = load_pickled_data(stpl_file)
+        instance.assemble()
+        codegen = generators.template_codegen(instance.topology)
         codegen.write_code_file(src_path)
     
-    
-    def write_configuration_code(self):
-        src_path = self._source_dir
-        codegen = generators.configuration_codegen(self._config)
+    def write_assembly_code(self, sasm_file):
+        src_path = self._assemblies_dir
+        instance = load_pickled_data(sasm_file)
+        #instance.assemble()
+        codegen = generators.assembly_codegen(instance.topology)
         codegen.write_code_file(src_path)
         
-    def _create_template_dir(self):
-        self._source_dir =  os.path.join(self._templates_dir, self._template_name)
-        if not os.path.exists(self._source_dir):
-            os.makedirs(self._source_dir)
-    
     def _write_init_file(self):
         pass
     
-    
-
-
-   
