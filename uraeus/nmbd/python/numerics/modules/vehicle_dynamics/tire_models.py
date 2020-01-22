@@ -9,7 +9,7 @@ Created on Sun Jul  7 09:38:20 2019
 import numpy as np
 import scipy as sc
 
-from smbd.numenv.python.numerics.core.math_funcs import A, E, G, skew
+from ...core.math_funcs import A, E, G, skew
 
 normal = np.array([[0], [0], [1]], dtype=np.float64)
 
