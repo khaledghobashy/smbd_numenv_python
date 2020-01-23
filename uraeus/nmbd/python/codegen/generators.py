@@ -95,7 +95,7 @@ class template_codegen(abstract_generator):
                 from numpy.linalg import multi_dot
                 from scipy.misc import derivative
                 
-                from uraeus.nmbd.python.numerics.core.math_funcs import A, B, G, E, triad, skew
+                from uraeus.nmbd.python.engine.numerics.math_funcs import A, B, G, E, triad, skew
                 
                 '''
         text = text.expandtabs()

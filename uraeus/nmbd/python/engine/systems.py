@@ -7,7 +7,6 @@ Created on Wed Mar 27 08:49:16 2019
 # Standard library imports
 import os
 import json
-import pickle
 import itertools
 import functools
 import importlib.util
@@ -18,18 +17,10 @@ import numpy as np
 from numpy.linalg import multi_dot
 
 # Local applicataion imports
-from .solvers import kds_solver, dds_solver
+from .numerics.solvers import kds_solver, dds_solver
+from .numerics.math_funcs import G
 from .utilities.decoders import JSON_Decoder
-from .math_funcs import G
 
-###############################################################################
-
-def load_pickled_data(file):
-    with open(file, 'rb') as f:
-        instance = pickle.load(f)
-    return instance
-
-###############################################################################
 ###############################################################################
 
 class multibody_system(object):
@@ -73,7 +64,6 @@ class simulation(object):
     def eval_reactions(self):
         self.soln.eval_reactions()
     
-
 ###############################################################################
 ###############################################################################
 
@@ -101,7 +91,6 @@ class configuration(object):
         
     def assemble(self):
         self.decoded_data.assemble()
-
         _attributes = itertools.chain(self.decoded_data.evaluations.keys(),
                                       self.decoded_data.outputs.keys())
         
@@ -122,8 +111,6 @@ def rgetattr(obj, attr, *args):
     def _getattr(obj, attr):
         return getattr(obj, attr, *args)
     return functools.reduce(_getattr, [obj] + attr.split('.'))
-
-
 
 def subsystems_creator(mapping, templates_dir):
     container = namedtuple('Subsystems', mapping.keys())
