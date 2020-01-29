@@ -73,7 +73,7 @@ class JSON_Decoder(object):
         self._construct_data(self.outputs)
 
     def _initialize(self):
-        data_dict = self._get_data_from_file(self.file)
+        self.data_dict = data_dict = self._get_data_from_file(self.file)
         self.user_inputs = data_dict['user_inputs']
         self.evaluations = data_dict['evaluations']
         self.outputs     = data_dict['outputs']

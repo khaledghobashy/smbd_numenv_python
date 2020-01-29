@@ -98,6 +98,25 @@ class configuration(object):
             value = getattr(self, key)
             setattr(self, key, value)
 
+    def export_json(self, file_path=''):
+        new_data = self.decoded_data.data_dict.copy()
+        user_inputs = new_data['user_inputs']
+        
+        for key, value in user_inputs.items():
+            if isinstance(value, (dict,)):
+                if value['constructor'] == 'array':
+                    user_inputs[key]['args'] = list(getattr(self, key).flat[:])
+                else:
+                    pass
+            else:
+                user_inputs[key] = getattr(self, key)
+        
+        file_name = os.path.join(file_path, '%s.json'%self.name)
+        json_text = json.dumps(new_data, indent=4)
+        with open(file_name, 'w') as f:
+            f.write(json_text)
+    
+
 ###############################################################################
 ###############################################################################
 
