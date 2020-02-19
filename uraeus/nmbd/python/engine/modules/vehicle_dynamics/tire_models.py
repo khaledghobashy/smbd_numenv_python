@@ -338,7 +338,8 @@ class brush_model(abstract_tire):
                 force  = self.mu * self.Fz * factor
             else:
                 print('SLIDING !!')
-                force = self.mu*self.Fz
+                factor = 0.65
+                force = self.mu * self.Fz * factor
                 self.slipping = True
             
             F  = force * normalize(sigma_vec)
