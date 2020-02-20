@@ -22,7 +22,7 @@ class npsc_printer(C99CodePrinter):
     def _print_AbstractMatrix(self,expr):
         args = ','.join([self._print(i) for i in expr.args])
         name = expr.__class__.__name__
-        name = (name.lower() if len(name)>1 else name)
+        name = (name if name[0] in 'ABGEU' else name.lower())
         return '%s(%s)'%(name,args)
     
     
@@ -167,10 +167,10 @@ class npsc_printer(C99CodePrinter):
         code_block = '\n'.join([rows_print,cols_print,data_print])
         return code_block
     
-    def _print_UndefinedFunction(self,expr):
+    def _print_UndefinedFunction(self, expr):
         return '%s'%expr
     
-    def _print_Function(self,expr):
+    def _print_Function(self, expr):
         func = expr.__class__.__name__
         args = ','.join([self._print(arg) for arg in expr.args])
         return '%s(%s)'%(func,args)
@@ -180,7 +180,6 @@ class npsc_printer(C99CodePrinter):
 
     def _print_Derivative(self, expr):
         func = expr.args[0].__class__.__name__
-#        func = self._print(func).strip(str(func.args))
         return 'derivative(%s, t, 0.1, %s)'%(func, expr.args[1][1])
     
     def _print_Lambda(self, obj):
