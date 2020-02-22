@@ -125,32 +125,23 @@ class templatebased_project(object):
         self._parent_dir = os.path.abspath(database_dir)
         self._code_dir = os.path.join(self._parent_dir, 'numenv', 'python')
         self._templates_dir  = os.path.join(self._code_dir, 'templates')
-        self._assemblies_dir = os.path.join(self._code_dir, 'assemblies')
-    
-    def create(self):
-        self.create_dirs()
-        self.write_topology_code()
-    
+        #self._assemblies_dir = os.path.join(self._code_dir, 'assemblies')
+        
     def create_dirs(self, clean=False):
         if not os.path.exists(self._templates_dir):
             os.makedirs(self._templates_dir)
-        if not os.path.exists(self._assemblies_dir):
-            os.makedirs(self._assemblies_dir)
             
-    def write_topology_code(self, stpl_file):
+    def write_topology_code(self, model):
         src_path = self._templates_dir
-        instance = load_pickled_data(stpl_file)
-        instance.assemble()
+        if type(model) is str:
+            stpl_file = model
+            instance = load_pickled_data(stpl_file)
+            instance.assemble()
+        else:
+            instance = model
         codegen = generators.template_codegen(instance.topology)
         codegen.write_code_file(src_path)
-    
-    def write_assembly_code(self, sasm_file):
-        src_path = self._assemblies_dir
-        instance = load_pickled_data(sasm_file)
-        #instance.assemble()
-        codegen = generators.assembly_codegen(instance.topology)
-        codegen.write_code_file(src_path)
-        
+            
     def _write_init_file(self):
         pass
     
