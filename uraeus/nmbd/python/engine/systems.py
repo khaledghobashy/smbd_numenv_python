@@ -98,8 +98,9 @@ class configuration(object):
             value = getattr(self, key)
             setattr(self, key, value)
 
-    def export_json(self, file_path=''):
+    def export_json(self, file_path='', subsystem_initial=''):
         new_data = self.decoded_data.data_dict.copy()
+        new_data['information']['subsystem_name'] = subsystem_initial
         user_inputs = new_data['user_inputs']
         
         for key, value in user_inputs.items():
