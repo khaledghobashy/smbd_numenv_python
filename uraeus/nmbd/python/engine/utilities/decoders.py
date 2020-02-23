@@ -10,7 +10,10 @@ import numpy as np
 
 # Local applicataion imports
 from ..numerics.math_funcs.spatial_alg import centered, oriented, mirrored
-from ..numerics.math_funcs.geometries import cylinder_geometry, triangular_prism, sphere_geometry
+from ..numerics.math_funcs.geometries import (cylinder_geometry, 
+                                              triangular_prism, 
+                                              sphere_geometry, 
+                                              composite_geometry)
 
 ###############################################################################
 
@@ -39,6 +42,10 @@ class constructors(object):
     @classmethod
     def Triangular_Prism(cls, args):
         return triangular_prism(*args)
+    
+    @classmethod
+    def Composite_Geometry(cls, args):
+        return composite_geometry(*args)
     
     @classmethod
     def Lambda(cls, args):
