@@ -79,15 +79,9 @@ class abstract_tire(object):
         self.V_sx = V_sx
         self.V_sy = V_sy
         self.V_x  = V_x 
-                
-        if False:
-            print('Omega = %s'%Omega)
-            print('V_WC = %s'%V_wc_SAE.T)
-            print('V_C = %s'%V_C)
-            print('V_sx = %s'%V_sx)
-            print('V_sy = %s'%V_sy)
-            print('V_x  = %s'%V_x)
-    
+        self.Omega = Omega
+        self.V_wc_SAE = V_wc_SAE
+            
     
     def _process_wheel_kinematics(self, t, dt, wheel_states, drive_torque, terrain_state=None):
         
@@ -132,15 +126,9 @@ class abstract_tire(object):
         self.V_sx = V_sx
         self.V_sy = V_sy
         self.V_x  = V_x 
-                
-        if True:
-            print('Omega = %s'%Omega)
-            print('V_WC = %s'%V_wc_SAE.T)
-            print('V_C = %s'%V_C)
-            print('V_sx = %s'%V_sx)
-            print('V_sy = %s'%V_sy)
-            print('V_x  = %s'%V_x)
-
+        self.Omega = Omega
+        self.V_wc_SAE = V_wc_SAE
+        
 
     def _set_SAE_Frame(self, P_hub, terrain_normal):
         
