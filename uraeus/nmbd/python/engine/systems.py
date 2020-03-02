@@ -55,11 +55,31 @@ class simulation(object):
         run_id = '%s_temp'%self.name if run_id is None else run_id
         self.soln.solve(run_id)
     
-    def save_results(self, path, filename):
+    def save_as_csv(self, path, filename, key='pos'):
+        assert key in {'pos', 'vel', 'acc'}
         path = os.path.abspath(path)
         filepath = os.path.join(path, filename)
-        self.soln.pos_dataframe.to_csv('%s.csv'%filepath, index=True)
-        print('results saved as %s.csv at %s'%(filename, path))
+        data = getattr(self.soln, '%s_dataframe'%key)
+        data.to_csv('%s.csv'%filepath, index=True)
+        print('Position level simulation results saved as %s.csv at %s'%(filename, path))
+    
+    def save_as_npz(self, path, filename):
+        path = os.path.abspath(path)
+        filepath = os.path.join(path, filename)
+        coordinates = list(self.soln.pos_dataframe.keys())
+        pos = self.soln.pos_dataframe.values
+        vel = self.soln.vel_dataframe.values
+        acc = self.soln.acc_dataframe.values
+        data = {'coordinates':coordinates, 'pos':pos, 'vel':vel, 'acc':acc}
+        np.savez_compressed(filepath, **data)
+        print('System States results saved as %s.npz at %s'%(filename, path))
+
+    def set_initial_states(self, npz_file):
+        data = np.load(npz_file)
+        pos = data['pos'][-1,:-1][:,np.newaxis]
+        vel = data['vel'][-1,:-1][:,np.newaxis]
+        self.soln.set_initial_states(pos, vel)
+
         
     def eval_reactions(self):
         self.soln.eval_reactions()
