@@ -57,6 +57,9 @@ class abstract_solver(object):
         
     
     def set_initial_states(self, coordinates, velocities):
+        assert coordinates.shape == self.model.q0.shape
+        assert velocities.shape == self.model.q0.shape
+        
         self._q0 = coordinates
         self._qd0 = velocities
         self.model.set_gen_coordinates(self._q0)
