@@ -46,25 +46,18 @@ class abstract_solver(object):
     def __init__(self, model):
         self.model = model
         self._initialize_model()
-                
-        self._pos_history = {0 : model.q0}
-        self._vel_history = {0 : 0*model.q0}
-        self._acc_history = {}
-        self._lgr_history = {}
-        
         self._create_indicies()
         
-    
-    def set_initial_states(self, coordinates, velocities):
-        assert coordinates.shape == self.model.q0.shape
-        assert velocities.shape == self.model.q0.shape
+    def set_initial_states(self, q, qd):
+        assert q.shape == self.model.q0.shape
+        assert qd.shape == self.model.q0.shape
         
-        self._q0 = coordinates
-        self._qd0 = velocities
+        self._q0  = q
+        self._qd0 = qd
         self.model.set_gen_coordinates(self._q0)
         self.model.set_gen_velocities(self._qd0)
-        self._pos_history = {0 : self._q0}
-        self._vel_history = {0 : self._qd0}
+        self._pos_history[0] = self._q0
+        self._vel_history[0] = self._qd0
 
             
     def set_time_array(self, duration, spacing):
@@ -78,6 +71,9 @@ class abstract_solver(object):
             raise ValueError('Time array is not properly sampled.')
         self.time_array = time_array
         self.step_size  = step_size
+
+        self._construct_containers(time_array.size)
+        self.set_initial_states(self.model.q0, 0*self.model.q0)
     
     
     def eval_reactions(self):
@@ -120,18 +116,28 @@ class abstract_solver(object):
         for name in model.reactions_indicies:
             self._reactions_indicies += ['%s.%s'%(name, i) 
             for i in ['x','y','z']]
+    
+    def _construct_containers(self, size):
+        self._pos_history = {}#np.empty((size,), dtype=np.ndarray)
+        self._vel_history = {}#np.empty((size,), dtype=np.ndarray)
+        self._acc_history = {}#np.empty((size,), dtype=np.ndarray)
+        self._lgr_history = {}#np.empty((size,), dtype=np.ndarray)
 
     def _creat_results_dataframes(self):
         columns = self._coordinates_indicies
         
+        pos_data = list(self._pos_history.values())
+        vel_data = list(self._vel_history.values())
+        acc_data = list(self._acc_history.values())
+
         self.pos_dataframe = pd.DataFrame(
-                data = np.concatenate(list(self._pos_history.values()),1).T,
+                data = np.concatenate(pos_data,1).T,
                 columns = columns)
         self.vel_dataframe = pd.DataFrame(
-                data = np.concatenate(list(self._vel_history.values()),1).T,
+                data = np.concatenate(vel_data,1).T,
                 columns = columns)
         self.acc_dataframe = pd.DataFrame(
-                data = np.concatenate(list(self._acc_history.values()),1).T,
+                data = np.concatenate(acc_data,1).T,
                 columns = columns)
         
         time_array = self.time_array
