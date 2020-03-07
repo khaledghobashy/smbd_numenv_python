@@ -46,12 +46,12 @@ class RKMethods(integrator):
 
         for s, (a, c) in enumerate(zip(A[1:], C[1:]), start=1):
             dy   = h * (K[:s].T @ a[:s][:, None])
-            K[s] = func(state_vector + dy, t + c * h, i).flat
+            K[s] = func(state_vector + dy, t + c * h, i, h).flat
         
         yn = state_vector +  (h * (K[:-1].T @ B[:, None]))
 
         #print(yn, yn.shape)
-        f_new = func(yn, t + h, i)
+        f_new = func(yn, t + h, i, h)
         K[-1] = f_new.flat
 
         self.t = t + h
