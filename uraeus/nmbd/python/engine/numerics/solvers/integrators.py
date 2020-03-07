@@ -6,6 +6,7 @@ Created on Mon Mar  2 20:10:35 2020
 """
 
 import numpy as np
+import numba
 
 class integrator(object):
 
@@ -112,6 +113,99 @@ class Explicit_RK45(RKMethods):
 from scipy.optimize import fsolve
 
 class Implicit_Trapezoidal(integrator):
-
-
     pass
+
+@numba.njit(cache=True)
+def solve(A, b):
+    x = np.linalg.solve(A, b)
+    return x
+
+class BDF(integrator):
+
+    @property
+    def beta0(self):
+        if self.i == 1:
+            self._beta0 = 1
+        elif self.i == 2:
+            self._beta0 = 2/3
+        else:
+            self._beta0 = 6/11
+        return self._beta0
+    
+    @property
+    def alpha(self):
+        if self.i == 1:
+            self._alpha = np.array([[-1]])
+        elif self.i == 2:
+            self._alpha = np.array([[-4/3, 1/3]])
+        else:
+            self._alpha = np.array([[-18/11, 9/11, -2/11]])
+        return self._alpha.T
+
+    def get_n_polynomial(self, states):
+        i = self.i
+        states_ = list(states.values())
+        states_.reverse()
+        if i == 1:
+            history = [states_[0]]
+        elif i == 2:
+            history = states_[0:2]
+        else:
+            history = states_[0:3]
+        y = np.concatenate(history, axis=1)
+        C = y @ self.alpha
+        return C
+        
+    
+    def step(self, states_history, i, fi):
+
+        self.i = i + 1
+        t = self.t
+
+        beta0 = self.beta0
+        h = self.h
+
+        pos_states, vel_states = states_history
+
+        Cx = self.get_n_polynomial(pos_states)
+        Cv = self.get_n_polynomial(vel_states)
+
+        acc = fi[:Cx.shape[0]]
+
+        pos = -Cx + (beta0*h)**2 * acc
+        vel = -Cv + (beta0*h) * acc
+
+        jacobian, residual = self.SSODE(fi, pos, vel, t, beta0, h)
+
+        delta = solve(jacobian, -residual)
+        itr=0
+        err = np.linalg.norm(residual)
+        while err>1e-3:
+            print('ITR = %s'%itr)
+            print(err)
+            fi = fi + delta
+
+            acc = fi[:Cx.shape[0]]
+            
+            pos = -Cx + (beta0*h)**2 * acc
+            vel = -Cv + (beta0*h) * acc
+
+            jacobian, residual = self.SSODE(fi, pos, vel, t, beta0, h)
+            delta = solve(jacobian, -residual)
+
+            if itr > 50:
+                print("Integration Iterations exceded \n")
+                raise ValueError("Integration Iterations exceded \n")
+                break
+
+            err = np.linalg.norm(residual)
+            itr+=1
+        
+        pos = -Cx + (beta0*h)**2 * acc
+        vel = -Cv + (beta0*h) * acc
+
+        self.t = t + h
+
+        return pos, vel, fi
+    
+    
