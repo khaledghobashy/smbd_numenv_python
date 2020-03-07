@@ -81,36 +81,11 @@ class dds_solver(abstract_solver):
         current_derivative = np.concatenate([vd, vdd])
         
         self.integrator.step(state_vector, i, current_derivative)
-        soln = self.integrator.y
-
-        y1 = soln[:self.dof]
-        y2 = soln[self.dof:]
-
-        guess = q + (qd * dt) + (0.5 * qdd * (dt**2))
-
-        for c in range(self.dof): 
-            guess[np.argmax(self.independent_cols[:, c]), 0] = y1[c,0]
         
-        self._newton_raphson(guess)
-        A  = self._jac
-        qi = self._pos
-        
-        vel_rhs = self._eval_vel_eq(y2)
-        vi = solve(A, -vel_rhs)
-        
-        self._set_gen_coordinates(qi)
-        self._set_gen_velocities(vi)
-        
-        J  = A[:-self.dof]
-        M  = self._eval_mass_eq()
-        Qt = self._eval_frc_eq()
-        Qd = self._eval_acc_eq()
-        acc_ti, lamda_ti = self._solve_augmented_system(M, J, Qt, Qd)
-        
-        self._pos_history[i+1] = qi
-        self._vel_history[i+1] = vi
-        self._acc_history[i+1] = acc_ti
-        self._lgr_history[i+1] = lamda_ti
+        self._pos_history[i+1] = self._q_new
+        self._vel_history[i+1] = self._qd_new
+        self._acc_history[i+1] = self._qdd_new
+        self._lgr_history[i+1] = self._lgr_new
         
 #    @profile
     def SSODE(self, state_vector, t, i):
@@ -145,6 +120,11 @@ class dds_solver(abstract_solver):
         y3 = self.get_indpenednt_q(acc_ti)
         
         rhs_vector = np.concatenate([y2, y3])
+
+        self._q_new = self._pos
+        self._qd_new = vi
+        self._qdd_new = acc_ti
+        self._lgr_new = lamda_ti
         
         return rhs_vector
         

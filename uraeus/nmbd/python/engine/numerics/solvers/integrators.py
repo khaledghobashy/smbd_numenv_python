@@ -51,8 +51,8 @@ class RKMethods(integrator):
         yn = state_vector +  (h * (K[:-1].T @ B[:, None]))
 
         #print(yn, yn.shape)
-        #f_new = func(yn, t + h, i)
-        #K[-1] = f_new.flat
+        f_new = func(yn, t + h, i)
+        K[-1] = f_new.flat
 
         self.t = t + h
         self.y = yn
