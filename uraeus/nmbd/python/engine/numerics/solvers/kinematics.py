@@ -11,8 +11,7 @@ import numba
 #from scipy.sparse.linalg import spsolve
 
 # Local imports.
-from ..math_funcs.numba_funcs import matrix_assembler
-from .abstract import abstract_solver, solve, progress_bar
+from .base import abstract_solver, solve, progress_bar
 
 class kds_solver(abstract_solver):
     

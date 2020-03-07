@@ -1,19 +1,13 @@
 
 # Standard library imports.
-import sys
 import time
 
 # Third party imports.
 import numpy as np
 import scipy as sc
-import pandas as pd
-import numba
-
-#from scipy.sparse.linalg import spsolve
 
 # Local imports.
-from ..math_funcs.numba_funcs import matrix_assembler
-from .abstract import abstract_solver, solve, progress_bar
+from .base import abstract_solver, solve, progress_bar
 from .integrators import (Explicit_RK45, Explicit_RK23, 
                           Explicit_RK4, Explicit_RK2)
 
@@ -238,9 +232,8 @@ class dds_solver(abstract_solver):
         A = np.concatenate([A, Z])
         return A
 
-    def _eval_vel_eq(self,ind_vel_i):
+    def _eval_vel_eq(self, ind_vel_i):
         A = super()._eval_vel_eq()
-        #V = np.array(ind_vel_i).reshape((self.dof, 1))
         V = ind_vel_i
         A = np.concatenate([A, -V])
         return A
