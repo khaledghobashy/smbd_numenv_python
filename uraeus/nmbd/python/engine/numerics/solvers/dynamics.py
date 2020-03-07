@@ -96,35 +96,37 @@ class dds_solver(abstract_solver):
         y2 = state_vector[self.dof:]
         
         dt = self.step_size
-        
-        guess = self._pos_history[i] \
-              + self._vel_history[i]*dt \
-              + 0.5*self._acc_history[i]*(dt**2)
 
+        q   = self._pos_history[i]
+        qd  = self._vel_history[i]
+        qdd = self._acc_history[i]
+        
+        guess = q + (qd * dt) + (0.5 * qdd * (dt**2))
         for c in range(self.dof): 
             guess[np.argmax(self.independent_cols[:, c]), 0] = y1[c,0]
                         
         self._newton_raphson(guess)
-        self._set_gen_coordinates(self._pos)
+        q_i = self._pos
+        self._set_gen_coordinates(q_i)
                 
         vel_rhs = self._eval_vel_eq(y2)
-        vi = solve(self._jac, -vel_rhs)
-        self._set_gen_velocities(vi)
+        qd_i = solve(self._jac, -vel_rhs)
+        self._set_gen_velocities(qd_i)
 
         J  = self._jac[:-self.dof]
         M  = self._eval_mass_eq()
         Qt = self._eval_frc_eq()
         Qd = self._eval_acc_eq()
-        acc_ti, lamda_ti = self._solve_augmented_system(M, J, Qt, Qd)
+        qdd_i, lamda_i = self._solve_augmented_system(M, J, Qt, Qd)
         
-        y3 = self.get_indpenednt_q(acc_ti)
+        y3 = self.get_indpenednt_q(qdd_i)
         
         rhs_vector = np.concatenate([y2, y3])
 
-        self._q_new = self._pos
-        self._qd_new = vi
-        self._qdd_new = acc_ti
-        self._lgr_new = lamda_ti
+        self._q_new   = q_i
+        self._qd_new  = qd_i
+        self._qdd_new = qdd_i
+        self._lgr_new = lamda_i
         
         return rhs_vector
         
