@@ -19,6 +19,8 @@ class integrator(object):
     def step(self):
         raise NotImplementedError
 
+##############################################################################
+
 class RKMethods(integrator):
 
     n_stages = NotImplemented
@@ -57,6 +59,7 @@ class RKMethods(integrator):
         self.t = t + h
         self.y = yn
     
+##############################################################################
 
 class Explicit_RK4(RKMethods):
 
@@ -70,6 +73,7 @@ class Explicit_RK4(RKMethods):
     B = np.array([1/6, 1/3, 1/3, 1/6])
     C = np.array([0, 1/2, 1/2, 0])
 
+##############################################################################
 
 class Explicit_RK2(RKMethods):
 
@@ -81,6 +85,7 @@ class Explicit_RK2(RKMethods):
     B = np.array([1/4, 3/4])
     C = np.array([0, 2/3])
 
+##############################################################################
 
 class Explicit_RK23(RKMethods):
 
@@ -92,6 +97,7 @@ class Explicit_RK23(RKMethods):
     B = np.array([2/9, 1/3, 4/9])
     C = np.array([0, 1/2, 3/4])
 
+##############################################################################
 
 class Explicit_RK45(RKMethods):
 
@@ -110,15 +116,20 @@ class Explicit_RK45(RKMethods):
     C = np.array([0, 1/5, 3/10, 4/5, 8/9, 1])
 
 
-from scipy.optimize import fsolve
+##############################################################################
+##############################################################################
 
 class Implicit_Trapezoidal(integrator):
     pass
+
+##############################################################################
 
 @numba.njit(cache=True)
 def solve(A, b):
     x = np.linalg.solve(A, b)
     return x
+
+##############################################################################
 
 class BDF(integrator):
 

@@ -78,10 +78,10 @@ class dds_solver(abstract_solver):
         print('\nRunning System Dynamic Analysis:')
         i = 0
         while i != bar_length:
-            # Updating the progress bar
-            progress_bar(bar_length, i, t0)
             t = time_array[i+1]
-
+            # Updating the progress bar
+            progress_bar(bar_length, i, t0, t)
+            
             # Re-Partition the system coordinates based on the latest
             # evaluation of the constraints jacobian
             self._partition_system_coordinates(self._jac[:-self.dof])

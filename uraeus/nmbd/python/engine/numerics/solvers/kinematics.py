@@ -39,7 +39,7 @@ class kds_solver(abstract_solver):
         print('\nRunning System Kinematic Analysis:')
         bar_length = len(time_array)-1
         for i,t in enumerate(time_array[1:]):
-            progress_bar(bar_length, i, t0)
+            progress_bar(bar_length, i, t0, t)
             self._set_time(t)
 
             g =   self._pos_history[i] \

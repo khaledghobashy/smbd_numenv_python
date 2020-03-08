@@ -29,13 +29,13 @@ def solve(A, b):
     return x
 
 
-def progress_bar(steps, i, t0):
+def progress_bar(steps, i, t0, t_sim):
     sys.stdout.write('\r')
     length=(100*(1+i)//(4*steps))
     percentage=100*(1+i)//steps
     t = time.perf_counter() - t0
-    format_ = ('='*length,percentage,i+1, steps, t)
-    sys.stdout.write("[%-25s] %d%%, (%s/%s) steps. ET = %.5s (s)" % format_)
+    format_ = ('='*length,percentage,i+1, steps, t_sim, t)
+    sys.stdout.write("[%-25s] %d%%, (%s/%s) steps. Sim Time = %.5s | CPU Time = %.5s (s)" % format_)
     sys.stdout.flush()
 
 ###############################################################################
