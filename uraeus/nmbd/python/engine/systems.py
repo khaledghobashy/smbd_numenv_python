@@ -67,10 +67,17 @@ class simulation(object):
         path = os.path.abspath(path)
         filepath = os.path.join(path, filename)
         coordinates = list(self.soln.pos_dataframe.keys())
+        constraints = list(self.soln._reactions_indicies)
         pos = self.soln.pos_dataframe.values
         vel = self.soln.vel_dataframe.values
         acc = self.soln.acc_dataframe.values
-        data = {'coordinates':coordinates, 'pos':pos, 'vel':vel, 'acc':acc}
+        lgr = self.soln.lgr_dataframe.values
+        data = {'coordinates':coordinates, 
+                'constraints':constraints,
+                'pos':pos, 
+                'vel':vel, 
+                'acc':acc,
+                'lgr':lgr}
         np.savez_compressed(filepath, **data)
         print('System States results saved as %s.npz at %s'%(filename, path))
 
@@ -189,6 +196,7 @@ class assembly(object):
         self.gr_jac_rows = np.array([0, 0, 1, 1])
         self.gr_jac_cols = np.array([0, 1, 0, 1])
         self._t = 0
+        self._i = 0
 
     @property
     def t(self):
@@ -198,6 +206,15 @@ class assembly(object):
         self._t = t
         for sub in self.subsystems:
             sub.t = t
+    
+    @property
+    def i(self):
+        return self._i
+    @i.setter
+    def i(self, i):
+        self._i = i
+        for sub in self.subsystems:
+            sub.i = i
 
     @staticmethod
     def construct_from_json(json_file):
