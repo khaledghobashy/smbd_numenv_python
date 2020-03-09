@@ -76,8 +76,11 @@ class dds_solver(abstract_solver):
         
         # Starting the simulation main loop
         print('\nRunning System Dynamic Analysis:')
-        i = 0
+        self.i = i = 0
         while i != bar_length:
+            self.i = i
+            self._set_simulation_step()
+
             t = time_array[i+1]
             # Updating the progress bar
             progress_bar(bar_length, i, t0, t)
@@ -96,6 +99,8 @@ class dds_solver(abstract_solver):
         # Constructing pandas dataframes to hold the simulation results
         self._creat_results_dataframes()
 
+    def _set_simulation_step(self):
+        self.model.i = self.i
 
     def _solve_time_step(self, t, i):
         
@@ -250,6 +255,5 @@ class dds_solver(abstract_solver):
         return qv
         
     def _eval_lagrange_multipliers(self, i):
-        self._set_gen_coordinates(self._pos_history[i])
         return self._lgr_history[i]
         

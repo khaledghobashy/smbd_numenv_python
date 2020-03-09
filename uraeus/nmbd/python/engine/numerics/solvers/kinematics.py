@@ -62,11 +62,7 @@ class kds_solver(abstract_solver):
         self._creat_results_dataframes()    
     
     
-    def _eval_lagrange_multipliers(self, i):
-        self._set_gen_coordinates(self._pos_history[i])
-        self._set_gen_velocities(self._vel_history[i])
-        self._set_gen_accelerations(self._acc_history[i])
-        
+    def _eval_lagrange_multipliers(self, i):        
         applied_forces = self._eval_frc_eq()
         mass_matrix = self._eval_mass_eq()
         jac = self._eval_jac_eq()
@@ -74,5 +70,4 @@ class kds_solver(abstract_solver):
         inertia_forces = mass_matrix.dot(qdd)
         rhs = applied_forces - inertia_forces
         lamda = solve(jac.T, rhs)
-        
         return lamda

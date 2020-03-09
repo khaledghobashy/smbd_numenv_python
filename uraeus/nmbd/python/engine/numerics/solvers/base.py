@@ -83,8 +83,11 @@ class abstract_solver(object):
         print("\nEvaluating System Constraints' Forces.")
         t0 = time.perf_counter()
         for i, t in enumerate(time_array):
-            progress_bar(bar_length, i, t0)
+            progress_bar(bar_length, i, t0, t)
             self._set_time(t)
+            self._set_gen_coordinates(self._pos_history[i])
+            self._set_gen_velocities(self._vel_history[i])
+            self._set_gen_accelerations(self._acc_history[i])
             lamda = self._eval_lagrange_multipliers(i)
             self._eval_reactions_eq(lamda)
             self._reactions[i] = self.model.reactions
@@ -125,10 +128,12 @@ class abstract_solver(object):
 
     def _creat_results_dataframes(self):
         columns = self._coordinates_indicies
+        constraints = self._reactions_indicies
         
         pos_data = list(self._pos_history.values())
         vel_data = list(self._vel_history.values())
         acc_data = list(self._acc_history.values())
+        lgr_data = list(self._lgr_history.values())
 
         self.pos_dataframe = pd.DataFrame(
                 data = np.concatenate(pos_data,1).T,
@@ -139,11 +144,15 @@ class abstract_solver(object):
         self.acc_dataframe = pd.DataFrame(
                 data = np.concatenate(acc_data,1).T,
                 columns = columns)
+        self.lgr_dataframe = pd.DataFrame(
+                data = np.concatenate(lgr_data,1).T,
+                columns = range(self.model.nc))
         
         time_array = self.time_array
         self.pos_dataframe['time'] = time_array
         self.vel_dataframe['time'] = time_array
         self.acc_dataframe['time'] = time_array
+        self.lgr_dataframe['time'] = time_array
     
     def _assemble_equations(self, data):
         mat = np.concatenate(data)
