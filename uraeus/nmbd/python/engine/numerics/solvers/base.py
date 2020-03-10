@@ -47,6 +47,7 @@ class abstract_solver(object):
         self.model = model
         self._initialize_model()
         self._create_indicies()
+        self._construct_containers()
         
     def set_initial_states(self, q, qd):
         assert q.shape == self.model.q0.shape
@@ -89,8 +90,9 @@ class abstract_solver(object):
             self._set_gen_velocities(self._vel_history[i])
             self._set_gen_accelerations(self._acc_history[i])
             lamda = self._eval_lagrange_multipliers(i)
-            self._eval_reactions_eq(lamda)
-            self._reactions[i] = self.model.reactions
+            self.model.set_lagrange_multipliers(lamda)
+            reactions = self._eval_reactions_eq()
+            self._reactions[i] = reactions
         
         self.values = {i:np.concatenate(list(v.values())) for i,v in self._reactions.items()}
         
@@ -120,7 +122,7 @@ class abstract_solver(object):
             self._reactions_indicies += ['%s.%s'%(name, i) 
             for i in ['x','y','z']]
     
-    def _construct_containers(self, size):
+    def _construct_containers(self, size=None):
         self._pos_history = {}#np.empty((size,), dtype=np.ndarray)
         self._vel_history = {}#np.empty((size,), dtype=np.ndarray)
         self._acc_history = {}#np.empty((size,), dtype=np.ndarray)
@@ -211,9 +213,9 @@ class abstract_solver(object):
         mat = self._assemble_equations(data)
         return mat
         
-    def _eval_reactions_eq(self, lamda):
-        self.model.set_lagrange_multipliers(lamda)
+    def _eval_reactions_eq(self):
         self.model.eval_reactions_eq()
+        return self.model.reactions
     
     def _newton_raphson(self, guess):
         self._set_gen_coordinates(guess)

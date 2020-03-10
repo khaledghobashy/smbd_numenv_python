@@ -14,6 +14,7 @@ from collections import namedtuple
 
 # 3rd party library imports
 import numpy as np
+import pandas as pd
 from numpy.linalg import multi_dot
 
 # Local applicataion imports
@@ -86,6 +87,28 @@ class simulation(object):
         pos = data['pos'][-1,:-1][:,np.newaxis]
         vel = data['vel'][-1,:-1][:,np.newaxis]
         self.soln.set_initial_states(pos, vel)
+    
+    def load_simulation_results(self, npz_file):
+        data = np.load(npz_file)
+        pos = data['pos']
+        vel = data['vel']
+        acc = data['acc']
+        lgr = data['lgr']
+        columns = data['coordinates']
+
+        self.soln.pos_dataframe = pd.DataFrame(
+                data = pos, columns = columns)
+        self.soln.vel_dataframe = pd.DataFrame(
+                data = vel, columns = columns)
+        self.soln.acc_dataframe = pd.DataFrame(
+                data = acc, columns = columns)
+        self.soln.lgr_dataframe = pd.DataFrame(
+                data = lgr, columns = range(self.soln.model.nc + 1))
+
+        self.soln._pos_history = {i: pos[i][:,None] for i in range(pos.shape[0])}
+        self.soln._vel_history = {i: vel[i][:,None] for i in range(pos.shape[0])}
+        self.soln._acc_history = {i: acc[i][:,None] for i in range(pos.shape[0])}
+        self.soln._lgr_history = {i: lgr[i][:,None] for i in range(pos.shape[0])}
 
         
     def eval_reactions(self):
