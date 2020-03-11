@@ -76,18 +76,18 @@ class abstract_tire(object):
         Omega = AngVel_Hub_LF[1,0]
         #Omega = self.SAE_GF.T.dot(AngVel_Hub_LF)[1,0]
         
+        # Longitudinal Wheel Velocity in SAE frame
+        #V_x  = abs(V_wc_SAE[0,0])
+        V_x  = V_wc_SAE[0,0]
+        
         # Circumfiranctial Velocity in SAE frame
         V_C  = Omega * self.effective_radius
         
         # Longitudinal Slip Velocity in SAE frame
-        V_sx = V_wc_SAE[0,0] + V_C
+        V_sx = V_x + V_C
         
         # Lateral Slip Velocity in SAE frame
         V_sy = V_wc_SAE[1,0]
-
-        # Longitudinal Wheel Velocity in SAE frame
-        #V_x  = abs(V_wc_SAE[0,0])
-        V_x  = V_wc_SAE[0,0]
 
         self.V_C = V_C
         self.V_x = V_x 

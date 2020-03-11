@@ -101,7 +101,9 @@ def matrix_assembler_temp(data, rows, cols, shape):
 @numba.njit(cache=True, nogil=True)
 def skew_matrix(v):
     x, y, z = v.flat
-    vs = np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
+    vs = np.array([[ 0, -z,  y], 
+                   [ z,  0, -x], 
+                   [-y,  x,  0]])
     return vs
 
 #@numba.njit(cache=True, nogil=True)
