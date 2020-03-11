@@ -45,16 +45,27 @@ class abstract_tire(object):
         if self.t <= t:
             self.t += dt            
     
-    def _process_wheel_kinematics_2(self, t, dt, R_hub, P_hub, Rd_hub, Pd_hub, drive_torque):
+    def _process_wheel_kinematics(self, t, dt, wheel_states, drive_torque, terrain_state=None):
+        
+        # Extracting the wheel states
+        R_hub, P_hub, Rd_hub, Pd_hub = wheel_states
+        
+        # 
+        if terrain_state:
+            terrain_normal, terrain_height = terrain_state
+        else:
+            terrain_normal = normal
+            terrain_height = 0
         
         # Creating SAE wheel frame based on hub orientation
-        self._set_SAE_Frame(P_hub)
+        self._set_SAE_Frame(P_hub, terrain_normal)
         
         # Evaluating the tire radii
-        self._eval_wheel_radii(R_hub, P_hub)
+        self._eval_wheel_radii(R_hub, Rd_hub, terrain_height)
         
         # Wheel Center Translational Velocity in Global Frame
         V_wc_GF  = Rd_hub
+        
         # Wheel Center Translational Velocity in SAE Frame
         V_wc_SAE = self.SAE_GF.T.dot(V_wc_GF)
 
@@ -83,7 +94,7 @@ class abstract_tire(object):
         self.V_wc_SAE = V_wc_SAE
             
     
-    def _process_wheel_kinematics(self, t, dt, wheel_states, drive_torque, terrain_state=None):
+    def _process_wheel_kinematics_2(self, t, dt, wheel_states, drive_torque, terrain_state=None):
         
         # Extracting the wheel states
         R_hub, P_hub, Rd_hub, Pd_hub = wheel_states
