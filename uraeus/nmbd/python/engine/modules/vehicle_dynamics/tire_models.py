@@ -69,10 +69,12 @@ class abstract_tire(object):
         # Wheel Center Translational Velocity in SAE Frame
         V_wc_SAE = self.SAE_GF.T.dot(V_wc_GF)
 
-        AngVel_Hub_LF = 2*E(P_hub)@Pd_hub # Local
-        
+        #AngVel_Hub_LF = 2*E(P_hub)@Pd_hub # Global
+        AngVel_Hub_LF = 2*G(P_hub)@Pd_hub # Local
+
         # Wheel spin velocity in SAE frame
         Omega = AngVel_Hub_LF[1,0]
+        #Omega = self.SAE_GF.T.dot(AngVel_Hub_LF)[1,0]
         
         # Circumfiranctial Velocity in SAE frame
         V_C  = Omega * self.effective_radius
@@ -84,12 +86,13 @@ class abstract_tire(object):
         V_sy = V_wc_SAE[1,0]
 
         # Longitudinal Wheel Velocity in SAE frame
-        V_x  = abs(V_wc_SAE[0,0])
+        #V_x  = abs(V_wc_SAE[0,0])
+        V_x  = V_wc_SAE[0,0]
 
-        self.V_C  = V_C
+        self.V_C = V_C
+        self.V_x = V_x 
         self.V_sx = V_sx
         self.V_sy = V_sy
-        self.V_x  = V_x 
         self.Omega = Omega
         self.V_wc_SAE = V_wc_SAE
             
