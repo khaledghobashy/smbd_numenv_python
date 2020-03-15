@@ -62,7 +62,12 @@ class npsc_printer(C99CodePrinter):
         return '%s'%expr._raw_name
     
     def _print_Mul(self,expr):
-        return '*'.join([self._print(i) for i in expr.args])
+        text = ' * '.join([self._print(i) for i in expr.args])
+        return '(%s)'%text
+    
+    def _print_Add(self,expr):
+        text = ' + '.join([self._print(i) for i in expr.args])
+        return '(%s)'%text
     
     def _print_MatMul(self,expr):
         scalars = []
@@ -89,7 +94,8 @@ class npsc_printer(C99CodePrinter):
         if len(scalars)==0:
             s = ''
         else:
-            s = '*'.join(scalars)+'*'
+            text = ' * '.join(scalars)
+            s = '(%s) * '%text
             
         if len(vectors)>1:
             v = 'multi_dot([%s])'%','.join(vectors)
@@ -99,7 +105,7 @@ class npsc_printer(C99CodePrinter):
         if len(express)==0:
             e = ''
         else:
-            e = '*'.join(express)+'*'
+            e = ' * '.join(express)+' * '
         #print('end \n')
         return e + s + v 
         
