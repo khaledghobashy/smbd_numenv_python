@@ -19,7 +19,6 @@ def normalize(v):
     return normalized
 
 
-
 class terrain(object):
 
    def __init__(self):
@@ -69,12 +68,12 @@ class abstract_tire(object):
         # Wheel Center Translational Velocity in SAE Frame
         V_wc_SAE = self.SAE_GF.T.dot(V_wc_GF)
 
-        #AngVel_Hub_LF = 2*E(P_hub)@Pd_hub # Global
-        AngVel_Hub_LF = 2*G(P_hub)@Pd_hub # Local
+        AngVel_Hub_LF = 2*E(P_hub)@Pd_hub # Global
+        #AngVel_Hub_LF = 2*G(P_hub)@Pd_hub # Local
 
         # Wheel spin velocity in SAE frame
-        Omega = AngVel_Hub_LF[1,0]
-        #Omega = self.SAE_GF.T.dot(AngVel_Hub_LF)[1,0]
+        #Omega = AngVel_Hub_LF[1,0]
+        Omega = self.SAE_GF.T.dot(AngVel_Hub_LF)[1,0]
         
         # Longitudinal Wheel Velocity in SAE frame
         #V_x  = abs(V_wc_SAE[0,0])
@@ -84,7 +83,7 @@ class abstract_tire(object):
         V_C  = Omega * self.effective_radius
         
         # Longitudinal Slip Velocity in SAE frame
-        V_sx = V_x + V_C
+        V_sx = (V_x + V_C)
         
         # Lateral Slip Velocity in SAE frame
         V_sy = V_wc_SAE[1,0]
@@ -231,7 +230,7 @@ class abstract_tire(object):
 #        print('vi = %s'%self.vi)
 #        print('a = %s'%a)
         
-        return k*self.driven, a
+        return k, a
     
     def _integrate_CPM(self, t, dt, V_sx, V_sy, Vx):
         
@@ -331,7 +330,7 @@ class brush_model(abstract_tire):
             xt = 0
 
         else:
-            Theta   = (2/3)*((self.cp * self.a**2)/(self.mu*self.Fz))
+            Theta = (2/3)*((self.cp * self.a**2)/(self.mu*self.Fz))
             TG = Theta*sigma
 
             if sigma <= 1/Theta:
@@ -355,7 +354,6 @@ class brush_model(abstract_tire):
         # Self Aligning Moment in SAE Frame
         self.Mz = (- xt * self.Fy)
 
-#        print('Tire_Ground Force = %s'%(F.T))
         self._eval_GF_forces()
         
         self._log_Fz(t)
@@ -367,16 +365,19 @@ class brush_model(abstract_tire):
     def _eval_GF_forces(self):
         
         F = np.array([[self.Fx], [self.Fy], [-self.Fz]])
-
+        
         self.F = self.SAE_GF.dot(F)
         self.My = self.Fx * self.effective_radius
-        
+
 #        X_SAE_GF = self.X_SAE_GF
         Y_SAE_GF = self.Y_SAE_GF
         Z_SAE_GF = self.Z_SAE_GF
 
-#        Force = self.Fx*X_SAE_GF + self.Fy*Y_SAE_GF + self.Fz*(-Z_SAE_GF)
-        self.M  = (self.My * Y_SAE_GF) + (self.Mz * Z_SAE_GF)
+        M_SAE = np.array([[0], [self.My], [self.Mz]])
+        M_GF = self.SAE_GF @ M_SAE
+
+        self.M  = M_GF 
+        #self.M = (self.My * Y_SAE_GF) + (self.Mz * Z_SAE_GF)
 #        print('My_SAE = %s'%self.My)
 #        print('M = %s'%(self.M.T))
         
