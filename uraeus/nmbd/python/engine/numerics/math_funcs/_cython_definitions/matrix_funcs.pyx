@@ -223,8 +223,8 @@ cpdef triad(double[:,:] v1, double[:,:] v2=None):
 @cython.boundscheck(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cpdef sparse_assembler(list blocks, int[:] b_rows, int[:] b_cols,
-                       list e_data, list e_rows, list e_cols): 
+cpdef sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
+                       int n_rows): 
     cdef:
         int row_counter = 0 
         int prev_rows_size = 0
@@ -235,6 +235,10 @@ cpdef sparse_assembler(list blocks, int[:] b_rows, int[:] b_cols,
         int v, i, j, vi, vj, m, n
         double value
         double[:,:] arr
+
+        list e_data = []
+        list e_rows = []
+        list e_cols = []
     
     
     for v in range(nnz):
@@ -250,6 +254,9 @@ cpdef sparse_assembler(list blocks, int[:] b_rows, int[:] b_cols,
         m = arr.shape[0]
         n = arr.shape[1]
         
+        if not np.any(arr):
+            continue
+            
         if n==3:
             prev_cols_size = 7*(vj//2)
         elif n==4:
@@ -262,5 +269,18 @@ cpdef sparse_assembler(list blocks, int[:] b_rows, int[:] b_cols,
                     e_rows.append(prev_rows_size + i)
                     e_cols.append(prev_cols_size + j)
                     e_data.append(value)
-        
-        
+    
+    return e_data, e_rows, e_cols
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cpdef matrix_assembler(tuple data, int[:] rows, int[:] cols, tuple shape):
+    n_rows = shape[0]
+
+    e_data, e_rows, e_cols = sparse_assembler(data, rows, cols, n_rows)
+
+    mat = np.zeros(shape)
+    mat[e_rows, e_cols] = e_data
+    return mat

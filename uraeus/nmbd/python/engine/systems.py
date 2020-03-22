@@ -293,8 +293,8 @@ class assembly(object):
             sub.eval_constants()
 
     def set_gen_coordinates(self,q):
-        self.R_ground = q[0:3,0:1]
-        self.P_ground = q[3:7,0:1]
+        self.R_ground = q[0:3]
+        self.P_ground = q[3:7]
         offset = 7
         for sub in self.subsystems:
             qs = q[offset:sub.n+offset]
@@ -303,8 +303,8 @@ class assembly(object):
         self._map_coordinates(self.mapped_vir_coordinates)
 
     def set_gen_velocities(self,qd):
-        self.Rd_ground = qd[0:3,0:1]
-        self.Pd_ground = qd[3:7,0:1]
+        self.Rd_ground = qd[0:3]
+        self.Pd_ground = qd[3:7]
         offset = 7
         for sub in self.subsystems:
             qs = qd[offset:sub.n+offset]
@@ -313,8 +313,8 @@ class assembly(object):
         self._map_coordinates(self.mapped_vir_velocities)
 
     def set_gen_accelerations(self,qdd):
-        self.Rdd_ground = qdd[0:3,0:1]
-        self.Pdd_ground = qdd[3:7,0:1]
+        self.Rdd_ground = qdd[0:3]
+        self.Pdd_ground = qdd[3:7]
         offset = 7
         for sub in self.subsystems:
             qs = qdd[offset:sub.n+offset]

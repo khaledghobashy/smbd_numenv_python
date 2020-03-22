@@ -46,7 +46,7 @@ class kds_solver(abstract_solver):
                 + self._vel_history[i]*dt \
                 + 0.5*self._acc_history[i]*(dt**2)
             
-            self._newton_raphson(g)
+            self._solve_constraints(g)
             self._pos_history[i+1] = self._pos
             A = self._eval_jac_eq()
             

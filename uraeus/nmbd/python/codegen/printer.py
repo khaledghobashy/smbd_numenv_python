@@ -11,13 +11,16 @@ import numpy as np
 from sympy.printing.ccode import C99CodePrinter
 
 class npsc_printer(C99CodePrinter):
-
         
     def _print_ZeroMatrix(self,expr):
-        return 'np.zeros(%s, dtype=np.float64)'%(expr.shape)
+        text = 'Z%sx%s'%(expr.shape)
+        # text = 'np.zeros(%s, dtype=np.float64)'%(expr.shape)
+        return text
     
     def _print_zero_matrix(self,expr):
-        return 'np.zeros(%s, dtype=np.float64)'%(expr.shape)
+        text = 'Z%sx%s'%(expr.shape)
+        # text = 'np.zeros(%s, dtype=np.float64)'%(expr.shape)
+        return text
         
     def _print_AbstractMatrix(self,expr):
         args = ','.join([self._print(i) for i in expr.args])
@@ -112,11 +115,12 @@ class npsc_printer(C99CodePrinter):
     
     def _print_Identity(self,expr):
         shape = expr.args[0]
-        return 'np.eye(%s, dtype=np.float64)'%shape
+        text = 'I%s'%shape
+        # text = 'np.eye(%s, dtype=np.float64)'%shape
+        return text
     
     def _print_MatExpr(self,expr):
         return '%s'%expr._ccode()
-    
     
     def _print_tuple(self,expr):
         if len(expr)>2:
@@ -146,9 +150,14 @@ class npsc_printer(C99CodePrinter):
     
     def _print_MatrixSlice(self,expr):
         m, row_slice, col_slice = expr.args
-        row_slice = '%s:%s'%(*row_slice[:-1],)
-        col_slice = '%s:%s'%(*col_slice[:-1],)
-        return '%s[%s,%s]'%(self._print(m),row_slice,col_slice)
+        if m.shape[1] == 1:
+            row_slice = '%s:%s'%(*row_slice[:-1],)
+            text = '%s[%s]'%(self._print(m), row_slice)
+        else:
+            row_slice = '%s:%s'%(*row_slice[:-1],)
+            col_slice = '%s:%s'%(*col_slice[:-1],)
+            text = '%s[%s,%s]'%(self._print(m),row_slice,col_slice)
+        return text
     
     def _print_MutableDenseMatrix(self,expr):
         elements = expr.tolist()

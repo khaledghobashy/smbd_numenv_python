@@ -6,9 +6,14 @@ Created on Mon Sep 16 10:31:42 2019
 @author: khaledghobashy
 """
 
+import functools
+
 # Third party imports.
 import numba
 import numpy as np
+
+def multi_dot(arrays): 
+    return functools.reduce(np.dot, arrays)
 
 
 @numba.njit(cache=True, nogil=True)
@@ -56,8 +61,6 @@ def sparse_assembler(blocks, b_rows, b_cols, n_rows):
     e_cols = e_cols[:nnz_counter]
     
     return e_data, e_rows, e_cols
-    
-#    return mat
 
 
 @numba.njit(cache=True, nogil=True)
@@ -67,7 +70,6 @@ def update_arrays(e_data, e_rows, e_cols, m, n, r, c, arr, nnz_counter):
         for j in range(n):
             value = arr[i,j]
             if abs(value)> 1e-5:
-#                mat[r+i, c+j] = value
                 e_rows[nnz_counter] = (r + i)
                 e_cols[nnz_counter] = (c + j)
                 e_data[nnz_counter] = (value)
@@ -87,15 +89,6 @@ def matrix_assembler(data, rows, cols, shape):
     mat[e_rows, e_cols] = e_data
     
     return mat
-
-@numba.njit(cache=True, nogil=True)
-def matrix_assembler_temp(data, rows, cols, shape):    
-    mat = np.zeros(shape)
-    sparse_assembler(data, rows, cols, mat)
-    return mat
-
-
-
 
 
 @numba.njit(cache=True, nogil=True)
@@ -170,10 +163,17 @@ def E(p):
         E   : 3x4 ndarray
     ===========================================================================
     '''
+
+    '''
     e0,e1,e2,e3 = p.flat
     m = np.array([[-e1, e0,-e3, e2],
                   [-e2, e3, e0,-e1],
                   [-e3,-e2, e1, e0]])
+    '''
+    e0 = p[0,0]
+    e = p[1:]
+    I = np.eye(3)
+    m = np.concatenate((-e, (e0 * I) + skew_matrix(e)), axis=1)
     return m
 
 @numba.njit(cache=True, nogil=True)
@@ -191,10 +191,18 @@ def G(p):
         G   : 3x4 ndarray
     ===========================================================================
     '''
+
+    '''
     e0,e1,e2,e3 = p.flat
     m = np.array([[-e1, e0, e3,-e2],
-                [-e2,-e3, e0, e1],
-                [-e3, e2,-e1, e0]])
+                  [-e2,-e3, e0, e1],
+                  [-e3, e2,-e1, e0]])
+    '''
+
+    e0 = p[0,0]
+    e = p[1:]
+    I = np.eye(3)
+    m = np.concatenate((-e, (e0 * I) - skew_matrix(e)), axis=1)
     return m
 
 @numba.njit(cache=True, nogil=True)
@@ -211,7 +219,8 @@ def A(p):
         A   : The transofrmation matrix 
     ===========================================================================
     '''
-    return E(p).dot(G(p).T)
+    m = E(p) @ G(p).T
+    return m
 
 
 @numba.njit(cache=True, nogil=True)
@@ -232,12 +241,16 @@ def B(p,a):
     '''
     I = np.eye(3)
 
-    e0,e1,e2,e3 = p.flat
-    e = np.array([[e1],[e2],[e3]])
+    e0 = p[0,0]
+    e  = p[1:] #np.array([[e1],[e2],[e3]])
     a_s = skew_matrix(a)
     e_s = skew_matrix(e)
+
+    m0 = (e0*I + e_s)
+    m1 = m0 @ a
+    m2 = (e @ a.T) - (m0 @ a_s)
     
-    m = 2*np.concatenate(((e0*I+e_s).dot(a), e.dot(a.T)-(e0*I+e_s).dot(a_s)), axis=1)
+    m = 2 * np.concatenate((m1, m2), axis=1)
     
     return m
 

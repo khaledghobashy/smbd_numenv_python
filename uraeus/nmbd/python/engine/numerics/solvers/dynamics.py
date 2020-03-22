@@ -22,8 +22,12 @@ class dds_solver(abstract_solver):
             msg = 'Model is fully constrained! Cannot perform dynamic'\
                   'analysis on such model.'
             raise ValueError(msg)
-        
     
+    def _construct_constants(self):
+        super()._construct_constants()
+        self._Zncxnc = np.zeros((self.model.nc, self.model.nc))
+        
+#    @profile
     def solve(self, run_id):
         # getting CPU start time to calculate CPU simulation time
         t0 = time.perf_counter()
@@ -49,7 +53,7 @@ class dds_solver(abstract_solver):
         
         # Solving the constraints equations based on the given initial 
         # configuration.
-        self._newton_raphson(pos_t0)
+        self._solve_constraints(pos_t0)
 
         # Evaluating the coefficient matrices at the initial
         # configuration
@@ -101,7 +105,8 @@ class dds_solver(abstract_solver):
 
     def _set_simulation_step(self):
         self.model.i = self.i
-
+    
+#    @profile
     def _solve_time_step(self, t, i):
         
         # Getting the last system states
@@ -154,7 +159,7 @@ class dds_solver(abstract_solver):
         
         # Solving the constraints equations based on the given guessed 
         # configuration.
-        self._newton_raphson(guess)
+        self._solve_constraints(guess)
         q_i = self._pos
         # Setting the current system generalized coordinates
         self._set_gen_coordinates(q_i)
@@ -218,11 +223,10 @@ class dds_solver(abstract_solver):
         
     def _solve_augmented_system(self, M, J, Qt, Qd):
         
-        z = np.zeros((self.model.nc, self.model.nc))
+        z = self._Zncxnc #np.zeros((self.model.nc, self.model.nc))
         u = np.concatenate([M, J.T], axis=1)
         l = np.concatenate([J, z], axis=1)
         A = np.concatenate([u, l], axis=0)
-#        A = sc.sparse.coo_matrix(A)
         
         b = np.concatenate([Qt, -Qd])
         x = solve(A, b)

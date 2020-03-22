@@ -23,7 +23,7 @@ from ..math_funcs.numba_funcs import matrix_assembler
 ###############################################################################
 ###############################################################################
 
-@numba.njit(cache=True)
+@numba.njit(cache=True, nogil=True)
 def solve(A, b):
     x = np.linalg.solve(A, b)
     return x
@@ -48,6 +48,10 @@ class abstract_solver(object):
         self._initialize_model()
         self._create_indicies()
         self._construct_containers()
+        self._construct_constants()
+    
+    def _construct_constants(self):
+        self._mass_matrix_rows = np.arange(self.model.ncols, dtype=np.intc)
         
     def set_initial_states(self, q, qd):
         assert q.shape == self.model.q0.shape
@@ -203,7 +207,7 @@ class abstract_solver(object):
         self.model.eval_mass_eq()
         data = self.model.mass_eq_blocks
         n = self.model.n
-        rows = cols = np.arange(self.model.ncols, dtype=np.intc)
+        rows = cols = self._mass_matrix_rows
         mat = matrix_assembler(data, rows, cols, (n, n))
         return mat
     
@@ -216,8 +220,9 @@ class abstract_solver(object):
     def _eval_reactions_eq(self):
         self.model.eval_reactions_eq()
         return self.model.reactions
-    
-    def _newton_raphson(self, guess):
+
+#    @profile
+    def _solve_constraints(self, guess):
         self._set_gen_coordinates(guess)
         
         A = self._eval_jac_eq()
@@ -227,7 +232,7 @@ class abstract_solver(object):
         itr=0
         while np.linalg.norm(delta_q)>1e-4:
 #            print(np.linalg.norm(delta_q))
-            guess = guess + delta_q
+            guess += delta_q
             
             self._set_gen_coordinates(guess)
             b = self._eval_pos_eq()
@@ -243,5 +248,8 @@ class abstract_solver(object):
             itr+=1
         self._pos = guess
         self._jac = self._eval_jac_eq()
+
+    def _factorize_jacobian(self, jacobian):
+        p, l, u = sc.linalg.lu(A.T)
 
 

@@ -92,11 +92,24 @@ class template_codegen(abstract_generator):
         text = '''
                 import numpy as np
                 from numpy import cos, sin
-                from numpy.linalg import multi_dot
                 from scipy.misc import derivative
                 
-                from uraeus.nmbd.python.engine.numerics.math_funcs import A, B, G, E, triad, skew
+                from uraeus.nmbd.python.engine.numerics.math_funcs import A, B, G, E, triad, skew, multi_dot
                 
+                # CONSTANTS
+                F64_DTYPE = np.float64
+
+                I1 = np.eye(1, dtype=F64_DTYPE)
+                I2 = np.eye(2, dtype=F64_DTYPE)
+                I3 = np.eye(3, dtype=F64_DTYPE)
+                I4 = np.eye(4, dtype=F64_DTYPE)
+
+                Z1x1 = np.zeros((1,1), F64_DTYPE)
+                Z1x3 = np.zeros((1,3), F64_DTYPE)
+                Z3x1 = np.zeros((3,1), F64_DTYPE)
+                Z3x4 = np.zeros((3,4), F64_DTYPE)
+                Z4x1 = np.zeros((4,1), F64_DTYPE)
+                Z4x3 = np.zeros((4,3), F64_DTYPE)
                 '''
         text = text.expandtabs()
         text = textwrap.dedent(text)
@@ -117,7 +130,7 @@ class template_codegen(abstract_generator):
                         self.nc = {nc}
                         self.nrows = {nve}
                         self.ncols = 2*{nodes}
-                        self.rows = np.arange(self.nrows)
+                        self.rows = np.arange(self.nrows, dtype=np.intc)
                         
                         reactions_indicies = {reactions}
                         self.reactions_indicies = ['%s%s'%(self.prefix,i) for i in reactions_indicies]
@@ -147,9 +160,9 @@ class template_codegen(abstract_generator):
                     self.rows_offset = rows_offset
                     self._set_mapping(indicies_map, interface_map)
                     self.rows += self.rows_offset
-                    self.jac_rows = np.array({jac_rows})
+                    self.jac_rows = np.array({jac_rows}, dtype=np.intc)
                     self.jac_rows += self.rows_offset
-                    self.jac_cols = np.array([{jac_cols}])
+                    self.jac_cols = np.array([{jac_cols}], dtype=np.intc)
                 
                 def set_initial_states(self):
                     self.q0  = np.concatenate([{coordinates}])
@@ -444,7 +457,7 @@ class template_codegen(abstract_generator):
         
         # Joining the extracted strings to form a valid text block.
         num_repl_text = '\n'.join(num_repl_list)
-        num_expr_text = ',\n'.join(num_expr_list)
+        num_expr_text = ',\n'.join(num_expr_list) if len(num_expr_list) != 0 else '[]'
 
         # Creating a regex pattern of strings that represents the variables
         # which need to be perfixed by a 'self.' to be referenced correctly.
@@ -578,16 +591,16 @@ class assembly_codegen(template_codegen):
                         self.interface_map = {interface_map}
                         self.indicies_map  = {indicies_map}
                         
-                        self.R_ground  = np.array([[0],[0],[0]],dtype=np.float64)
-                        self.P_ground  = np.array([[1],[0],[0],[0]],dtype=np.float64)
-                        self.Pg_ground = np.array([[1],[0],[0],[0]],dtype=np.float64)
+                        self.R_ground  = np.array([[0],[0],[0]], dtype=F64_DTYPE)
+                        self.P_ground  = np.array([[1],[0],[0],[0]], dtype=F64_DTYPE)
+                        self.Pg_ground = np.array([[1],[0],[0],[0]], dtype=F64_DTYPE)
                         
-                        self.m_ground = np.eye(3,dtype=np.float64)
-                        self.Jbar_ground = np.eye(3,dtype=np.float64)
+                        self.m_ground = I3
+                        self.Jbar_ground = I3
                         
-                        self.gr_rows = np.array([0,1])
-                        self.gr_jac_rows = np.array([0,0,1,1])
-                        self.gr_jac_cols = np.array([0,1,0,1])
+                        self.gr_rows = np.array([0,1], dtype=np.intc)
+                        self.gr_jac_rows = np.array([0,0,1,1], dtype=F64_DTYPE)
+                        self.gr_jac_cols = np.array([0,1,0,1], dtype=F64_DTYPE)
                         
                         self.n  = sum([sub.n for sub in self.subsystems]) + 7
                         self.nc = sum([sub.nc for sub in self.subsystems]) + 7

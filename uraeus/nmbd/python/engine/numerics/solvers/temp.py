@@ -1,215 +1,16 @@
-class dds_solver1(abstract_solver):
-    
-    def __init__(self, model):
-        super().__init__(model)
-        if self.model.n == self.model.nc:
-            raise ValueError('Model is fully constrained.')
-        
-        self.integrator = self._runge_kutta
-    
-    def solve(self, run_id):
-        t0 = time.perf_counter()
-        
-        time_array = self.time_array
-        dt = self.step_size
-        bar_length = len(time_array)-1
-        
-        print('\nStarting System Dynamic Analysis:')
-        
-        self._extract_independent_coordinates()
-        print('Estimated DOF : %s'%(len(self.independent_cord),))
-        print('Estimated Independent Coordinates : %s'%(self.independent_cord,))
-        
-        pos_t0 = self._pos_history[0]
-        vel_t0 = self._vel_history[0]
-        
-        self._newton_raphson(pos_t0)
+# Standard library imports.
+import time
 
-        M, J, Qt, Qd = self._eval_augmented_matricies(pos_t0, vel_t0)
-        acc_t0, lamda_t0 = self._solve_augmented_system(M, J, Qt, Qd)        
-        self._acc_history[0] = acc_t0
-        self._lgr_history[0] = lamda_t0
-        
-        print('\nRunning System Dynamic Analysis:')
-        i = 0
-        while i != bar_length:
-            progress_bar(bar_length, i, t0)
-            t = time_array[i+1]
-            self._extract_independent_coordinates(self._jac[:-self.dof])
-            self._set_time(t)
-            self._solve_time_step(t, i, dt)
-            i += 1            
-        print('\n')
-        self._creat_results_dataframes()
+# Third party imports.
+import numpy as np
+import scipy as sc
 
-    def _solve_time_step(self, t, i, dt):
-        
-        q  = self._pos_history[i]
-        qd = self._vel_history[i]
-        
-        q_v  = self.get_indpenednt_q(q)
-        qd_v = self.get_indpenednt_q(qd)
-        state_vector = np.concatenate([q_v, qd_v])
-        
-        soln = self.integrator(self.SSODE, state_vector, t, dt, i)
-        y1 = soln[:self.dof, 0]
-        y2 = soln[self.dof:, 0]
-
-        guess = self._pos_history[i] \
-              + self._vel_history[i]*dt \
-              + 0.5*self._acc_history[i]*(dt**2)
-        for c in range(self.dof): 
-            guess[np.argmax(self.independent_cols[:, c]), 0] = y1[c]
-        
-        self._newton_raphson(guess)
-        A  = self._jac
-        qi = self._pos
-        
-        vel_rhs = self._eval_vel_eq(y2)
-        vi = solve(A, -vel_rhs)
-        
-        self._set_gen_coordinates(qi)
-        self._set_gen_velocities(vi)
-        
-        J  = A[:-self.dof]
-        M  = self._eval_mass_eq()
-        Qt = self._eval_frc_eq()
-        Qd = self._eval_acc_eq()
-        acc_ti, lamda_ti = self._solve_augmented_system(M, J, Qt, Qd)
-        
-        self._pos_history[i+1] = qi
-        self._vel_history[i+1] = vi
-        self._acc_history[i+1] = acc_ti
-        self._lgr_history[i+1] = lamda_ti
-        
-        
-    def _extract_independent_coordinates(self, jacobian=None):
-        A = super()._eval_jac_eq() if jacobian is None else jacobian
-        rows, cols = A.shape
-        permutaion_mat = sc.linalg.lu(A.T)[0]
-        independent_cols = permutaion_mat[:, rows:]
-        self.dof = dof = independent_cols.shape[1]
-        independent_cord = [self._coordinates_indicies[np.argmax(independent_cols[:,i])] for i in range(dof) ]
-        self.permutaion_mat  = permutaion_mat.T
-        self.independent_cols = independent_cols
-        self.independent_cord = independent_cord
-    
-    
-    def _eval_augmented_matricies(self, q , qd):
-        self._set_gen_coordinates(q)
-        self._set_gen_velocities(qd)
-        J  = super()._eval_jac_eq()
-        M  = self._eval_mass_eq()
-        Qt = self._eval_frc_eq()
-        Qd = self._eval_acc_eq()
-        return M, J, Qt, Qd
-    
-        
-    def _solve_augmented_system(self, M, J, Qt, Qd):
-        
-        z = np.zeros((self.model.nc, self.model.nc))
-
-        u = np.concatenate([M, J.T], axis=1)
-        l = np.concatenate([J, z], axis=1)
-        
-        A = np.concatenate([u, l], axis=0)
-#        A = sc.sparse.coo_matrix(A)
-        
-        b = np.concatenate([Qt, -Qd])
-        x = solve(A, b)
-        n = self.model.n
-        accelerations = x[:n]
-        lamda = x[n:]
-        return accelerations, lamda
-    
-    def _eval_pos_eq(self):
-        A = super()._eval_pos_eq()
-        Z = np.zeros((self.dof, 1))
-        A = np.concatenate([A, Z])
-        return A
-
-    def _eval_vel_eq(self,ind_vel_i):
-        A = super()._eval_vel_eq()
-        V = np.array(ind_vel_i).reshape((self.dof, 1))
-        A = np.concatenate([A, -V])
-        return A
-    
-    def _eval_jac_eq(self):
-        A = np.concatenate([super()._eval_jac_eq(), self.independent_cols.T])
-        return A
-    
-            
-    def get_indpenednt_q(self, q):
-        dof = self.dof
-        P = self.permutaion_mat
-        qp = P@q
-        qv = qp[-dof:, :]
-        return qv
-    
-#    @profile
-    def SSODE(self, state_vector, t, i):
-          
-        self._set_time(t)
-        
-        y1 = state_vector[:self.dof]
-        y2 = state_vector[self.dof:]
-        
-        dt = self.step_size
-        
-        guess = self._pos_history[i] \
-              + self._vel_history[i]*dt \
-              + 0.5*self._acc_history[i]*(dt**2)
-
-        for c in range(self.dof): 
-            guess[np.argmax(self.independent_cols[:, c]), 0] = y1[c]
-                        
-        self._newton_raphson(guess)
-        self._set_gen_coordinates(self._pos)
-                
-        vel_rhs = self._eval_vel_eq(y2)
-        vi = solve(self._jac, -vel_rhs)
-        self._set_gen_velocities(vi)
-
-        J  = self._jac[:-self.dof]
-        M  = self._eval_mass_eq()
-        Qt = self._eval_frc_eq()
-        Qd = self._eval_acc_eq()
-        acc_ti, lamda_ti = self._solve_augmented_system(M, J, Qt, Qd)
-        
-        y3 = self.get_indpenednt_q(acc_ti)
-        
-        rhs_vector = np.concatenate([y2, y3])
-        
-        return rhs_vector
-        
-    
-    @staticmethod
-    def _forward_euler(func, state_vector, t, h, i):
-        f1 = func(state_vector, t, i)
-        yn = state_vector + h*f1
-        return yn
-    
-    @staticmethod
-    def _runge_kutta(func, state_vector, t, h, i):
-        
-        f1 = h*func(state_vector, t, i)
-        f2 = h*func(state_vector + 0.5*f1, t + 0.5*h, i)
-        f3 = h*func(state_vector + 0.5*f2, t + 0.5*h, i)
-        f4 = h*func(state_vector + f3, t + h, i)
-        
-        yn = state_vector + (1/6) * (f1 + 2*f2 + 2*f3 + f4)
-        
-        return yn
-    
-    def _eval_lagrange_multipliers(self, i):
-        self._set_gen_coordinates(self._pos_history[i])
-        return self._lgr_history[i]
-        
+# Local imports.
+from .base import abstract_solver, solve, progress_bar
+from .integrators import BDF
 
 ################################################################
 ################################################################
-
-#################################################################
 
 class dds_solver(abstract_solver):
     
@@ -245,8 +46,8 @@ class dds_solver(abstract_solver):
         print('\nRunning System Dynamic Analysis:')
         i = 0
         while i != bar_length:
-            progress_bar(bar_length, i, t0)
             t = time_array[i+1]
+            progress_bar(bar_length, i, t0, t)
             self._set_time(t)
             self._extract_independent_coordinates(self._jac[:-self.dof])
             self._solve_time_step(t, i, dt)
@@ -421,18 +222,18 @@ class dds_solver4(abstract_solver):
         print('\nRunning System Dynamic Analysis:')
         i = 0
         while i != bar_length:
-            progress_bar(bar_length, i, t0)
             t = time_array[i+1]
+            progress_bar(bar_length, i, t0, t)
             self._set_time(t)
-            #self.factorize_constraints_jacobian()
+            self.factorize_constraints_jacobian()
             self._solve_time_step(t, dt, i)
             i += 1            
         print('\n')
         self._creat_results_dataframes()
 
     def _solve_time_step(self, t, h, i):
-        #print('SOLVING TIME STEP (%s)'%i)
-        #print('======================')
+        print('SOLVING TIME STEP (%s)'%i)
+        print('======================')
 
         qdd0 = self._acc_history[i]
         vdd0 = self.get_indpenednt_q(qdd0)
@@ -444,8 +245,8 @@ class dds_solver4(abstract_solver):
         self._acc_history[i+1] = qdd
         self._lgr_history[i+1] = lamda
 
-        #print('FINISHED TIME STEP (%s)'%i)
-        #print('=======================\n')
+        print('FINISHED TIME STEP (%s)'%i)
+        print('=======================\n')
 
 
     def factorize_constraints_jacobian(self, jacobian=None):
@@ -462,9 +263,9 @@ class dds_solver4(abstract_solver):
         norm = np.linalg.norm(delta)
         itr = 0
         while norm >1e-3:
-            #print('Itr : %s'%itr)
-            #print('ResNorm = %s' %np.linalg.norm(residual))
-            #print('DelNorm = %s\n' %np.linalg.norm(delta))
+            print('Itr : %s'%itr)
+            print('ResNorm = %s' %np.linalg.norm(residual))
+            print('DelNorm = %s\n' %np.linalg.norm(delta))
             vdd = vdd + delta
             soln = self.integrator_rhs(vdd, t, h, i)
             residual, q, qd, qdd, lamda, _ = soln
@@ -479,7 +280,7 @@ class dds_solver4(abstract_solver):
         
 
     def integrator_rhs(self, vdd, t, h, i):
-        #print('Entring Integrator RHS')
+        print('Entring Integrator RHS')
 
         self._set_time(t)
 
@@ -698,8 +499,8 @@ class dds_solver5(abstract_solver):
         print('\nRunning System Dynamic Analysis:')
         i = 0
         while i != bar_length:
-            progress_bar(bar_length, i, t0)
             t = time_array[i+1]
+            progress_bar(bar_length, i, t0, t)
             self._set_time(t)
             self.factorize_constraints_jacobian(self._jac[:-self.dof])
             self._extract_independent_coordinates()
@@ -737,7 +538,7 @@ class dds_solver5(abstract_solver):
         soln = self.integrator_rhs(fi, t, h, i)
         residual, q, qd, qdd, lamda, M_hat = soln
         delta = solve(M_hat, -residual)
-        norm = np.linalg.norm(residual)
+        norm = np.linalg.norm(delta)
         itr = 0
         while norm >1e-3:
             print('Itr : %s'%itr)
@@ -747,7 +548,7 @@ class dds_solver5(abstract_solver):
             soln = self.integrator_rhs(fi, t, h, i)
             residual, q, qd, qdd, lamda, M_hat = soln
             delta = solve(M_hat, -residual)
-            norm = np.linalg.norm(residual)
+            norm = np.linalg.norm(delta)
             if itr > 150:
                 print("Integration Iterations exceded \n")
                 raise ValueError("Integration Iterations exceded \n")
