@@ -19,6 +19,7 @@ import numba
 
 # Local imports.
 from ..math_funcs.numba_funcs import matrix_assembler
+#from ..math_funcs._cython_definitions.matrix_funcs import matrix_assembler
 
 ###############################################################################
 ###############################################################################
@@ -227,7 +228,9 @@ class abstract_solver(object):
         
         A = self._eval_jac_eq()
         b = self._eval_pos_eq()
-        delta_q = solve(A, -b)
+        lu, p = self._factorize_jacobian(A)
+        delta_q = sc.linalg.lu_solve((lu, p), -b)
+        #delta_q = solve(A, -b)
         
         itr=0
         while np.linalg.norm(delta_q)>1e-4:
@@ -236,11 +239,11 @@ class abstract_solver(object):
             
             self._set_gen_coordinates(guess)
             b = self._eval_pos_eq()
-            delta_q = solve(A, -b)
+            delta_q = sc.linalg.lu_solve((lu, p), -b)
             
             if itr%5==0 and itr!=0:
-                A = self._eval_jac_eq()
-                delta_q = solve(A, -b)
+                lu, p = self._factorize_jacobian(A)
+                delta_q = sc.linalg.lu_solve((lu, p), -b)
             if itr>50:
                 print("Iterations exceded \n")
                 raise ValueError("Iterations exceded \n")
@@ -250,6 +253,7 @@ class abstract_solver(object):
         self._jac = self._eval_jac_eq()
 
     def _factorize_jacobian(self, jacobian):
-        p, l, u = sc.linalg.lu(A.T)
+        lu, p = sc.linalg.lu_factor(jacobian)
+        return lu, p
 
 

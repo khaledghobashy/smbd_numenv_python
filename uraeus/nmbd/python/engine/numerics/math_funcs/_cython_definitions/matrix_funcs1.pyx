@@ -9,68 +9,31 @@ from libc.math cimport fabs, exp
 
 ctypedef cnp.float64_t DTYPE_t
 
+
 @cython.wraparound (False)
 @cython.boundscheck(False)
-cpdef E(double[:,:] p):
-    
-    cdef double e0 = p[0,0]
-    cdef double e1 = p[1,0]
-    cdef double e2 = p[2,0]
-    cdef double e3 = p[3,0]
+cdef void A_cy(double[:,:] arr, double[:,:] result):
+
+    cdef double e0 = arr[0,0]
+    cdef double e1 = arr[1,0]
+    cdef double e2 = arr[2,0]
+    cdef double e3 = arr[3,0]
         
-    m = np.empty((3,4),dtype=np.float64)
-    cdef double[:,:] result = m
+    result[0,0] = (e0**2+e1**2-e2**2-e3**2)
+    result[0,1] = 2*((e1*e2)-(e0*e3))              
+    result[0,2] = 2*((e1*e3)+(e0*e2))
     
-    result[0,0] = -e1
-    result[0,1] =  e0
-    result[0,2] = -e3
-    result[0,3] =  e2
+    result[1,0] = 2*((e1*e2)+(e0*e3))
+    result[1,1] = e0**2-e1**2+e2**2-e3**2
+    result[1,2] = 2*((e2*e3)-(e0*e1))
     
-    result[1,0] = -e2
-    result[1,1] =  e3
-    result[1,2] =  e0
-    result[1,3] = -e1
+    result[2,0] = 2*((e1*e3)-(e0*e2))
+    result[2,1] = 2*((e2*e3)+(e0*e1))
+    result[2,2] = e0**2-e1**2-e2**2+e3**2
     
-    result[2,0] = -e3
-    result[2,1] = -e2
-    result[2,2] =  e1
-    result[2,3] =  e0
-
-    return m
-
-@cython.wraparound (False)
-@cython.boundscheck(False)
-cpdef G(double[:,:] p):
-    
-    cdef double e0 = p[0,0]
-    cdef double e1 = p[1,0]
-    cdef double e2 = p[2,0]
-    cdef double e3 = p[3,0]
-        
-    m = np.empty((3,4),dtype=np.float64)
-    cdef double[:,:] result = m
-    
-    result[0,0] = -e1
-    result[0,1] =  e0
-    result[0,2] =  e3
-    result[0,3] = -e2
-    
-    result[1,0] = -e2
-    result[1,1] = -e3
-    result[1,2] =  e0
-    result[1,3] =  e1
-    
-    result[2,0] = -e3
-    result[2,1] =  e2
-    result[2,2] = -e1
-    result[2,3] =  e0
-
-    return m
-
-@cython.wraparound (False)
-@cython.boundscheck(False)
-cpdef A(double[:,:] p):
-    m = E(p).dot(G(p).T)
+cpdef A(double[:,:] arr):
+    m = np.zeros((3,3),dtype=np.float64)
+    A_cy(arr, m)
     return m
 
 @cython.wraparound (False)
@@ -114,7 +77,7 @@ cpdef B(double[:,:] p, double[:,:] u):
     cdef double uz = u[2,0]
     
     m = np.empty((3,4),dtype=np.float64)
-    cdef double[:,:] result = m
+    cdef double[:,:] result = m.view()
     
     result[0,0] = 2*e0*ux + 2*e2*uz - 2*e3*uy
     result[0,1] = 2*e1*ux + 2*e2*uy + 2*e3*uz
@@ -133,6 +96,63 @@ cpdef B(double[:,:] p, double[:,:] u):
 
     return m
 
+@cython.wraparound (False)
+@cython.boundscheck(False)
+cpdef E(double[:,:] p):
+    
+    cdef double e0 = p[0,0]
+    cdef double e1 = p[1,0]
+    cdef double e2 = p[2,0]
+    cdef double e3 = p[3,0]
+        
+    m = np.empty((3,4),dtype=np.float64)
+    cdef double[:,:] result = m.view()
+    
+    result[0,0] = -e1
+    result[0,1] =  e0
+    result[0,2] = -e3
+    result[0,3] =  e2
+    
+    result[1,0] = -e2
+    result[1,1] =  e3
+    result[1,2] =  e0
+    result[1,3] = -e1
+    
+    result[2,0] = -e3
+    result[2,1] = -e2
+    result[2,2] =  e1
+    result[2,3] =  e0
+
+    return m
+
+@cython.wraparound (False)
+@cython.boundscheck(False)
+cpdef G(double[:,:] p):
+    
+    cdef double e0 = p[0,0]
+    cdef double e1 = p[1,0]
+    cdef double e2 = p[2,0]
+    cdef double e3 = p[3,0]
+        
+    m = np.empty((3,4),dtype=np.float64)
+    cdef double[:,:] result = m.view()
+    
+    result[0,0] = -e1
+    result[0,1] =  e0
+    result[0,2] =  e3
+    result[0,3] = -e2
+    
+    result[1,0] = -e2
+    result[1,1] = -e3
+    result[1,2] =  e0
+    result[1,3] =  e1
+    
+    result[2,0] = -e3
+    result[2,1] =  e2
+    result[2,2] = -e1
+    result[2,3] =  e0
+
+    return m
 
 @cython.wraparound (False)
 @cython.boundscheck(False)
@@ -142,7 +162,7 @@ cpdef skew_matrix(double[:,:] v):
     cdef double z = v[2,0]
     
     m = np.zeros((3,3),dtype=np.float64)
-    cdef double[:,:] result = m
+    cdef double[:,:] result = m.view()
     
     result[0,1] = -z
     result[0,2] = y
@@ -212,8 +232,7 @@ cpdef sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
         
         int nnz = len(b_rows)
         
-        Py_ssize_t v, i, j
-        int vi, vj, m, n
+        int v, i, j, vi, vj, m, n
         double value
         double[:,:] arr
 
@@ -231,7 +250,7 @@ cpdef sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
             prev_rows_size += m
             prev_cols_size  = 0
         
-        arr = blocks[v]
+        arr = blocks[v].view()
         m = arr.shape[0]
         n = arr.shape[1]
         
@@ -258,16 +277,10 @@ cpdef sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
 @cython.nonecheck(False)
 @cython.cdivision(True)
 cpdef matrix_assembler(tuple data, int[:] rows, int[:] cols, tuple shape):
-    
-    cdef:
-        int n_rows = shape[0]
-        list e_data
-        list e_rows
-        list e_cols
+    n_rows = shape[0]
 
     e_data, e_rows, e_cols = sparse_assembler(data, rows, cols, n_rows)
 
-    mat = np.zeros(shape)    
+    mat = np.zeros(shape)
     mat[e_rows, e_cols] = e_data
-    
     return mat
