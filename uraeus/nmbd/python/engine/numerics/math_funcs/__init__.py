@@ -9,9 +9,6 @@ except ModuleNotFoundError:
 
 from .spatial_alg import triad
 from .numba_funcs import dcm2ep, multi_dot
-#from .numba_funcs import (A, B, G, E, 
-#                          skew_matrix as skew, 
-#                          dcm2ep, multi_dot)
 
 __all__ = ['A', 'B', 'G', 'E', 'triad', 'skew', 'dcm2ep', 'multi_dot']
 
