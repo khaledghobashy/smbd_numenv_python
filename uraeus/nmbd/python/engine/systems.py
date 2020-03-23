@@ -215,9 +215,9 @@ class assembly(object):
         self.m_ground = np.eye(3, dtype=np.float64)
         self.Jbar_ground = np.eye(3, dtype=np.float64)
 
-        self.gr_rows = np.array([0, 1])
-        self.gr_jac_rows = np.array([0, 0, 1, 1])
-        self.gr_jac_cols = np.array([0, 1, 0, 1])
+        self.gr_rows = np.array([0, 1], dtype=np.intc)
+        self.gr_jac_rows = np.array([0, 0, 1, 1], dtype=np.intc)
+        self.gr_jac_cols = np.array([0, 1, 0, 1], dtype=np.intc)
         self._t = 0
         self._i = 0
 
