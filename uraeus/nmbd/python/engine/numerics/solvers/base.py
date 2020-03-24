@@ -109,7 +109,7 @@ class abstract_solver(object):
             self._set_gen_coordinates(self._pos_history[i])
             self._set_gen_velocities(self._vel_history[i])
             self._set_gen_accelerations(self._acc_history[i])
-            self._lgr.flat = self._eval_lagrange_multipliers(i)
+            self._set_lagrange_multipliers(self._lgr_history[i])
             reactions = self._eval_reactions_eq()
             self._reactions[i] = reactions
         

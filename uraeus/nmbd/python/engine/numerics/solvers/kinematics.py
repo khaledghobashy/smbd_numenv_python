@@ -1,3 +1,4 @@
+
 # Standard library imports.
 import sys
 import time
@@ -26,48 +27,69 @@ class kds_solver(abstract_solver):
         
         time_array = self.time_array
         dt = self.step_size
+        t_end = time_array[-1]
         
         A = self._eval_jac_eq()
+
+        lu, p = self._factorize_jacobian(A)
+
         vel_rhs = self._eval_vel_eq()
-        v0 = solve(A, -vel_rhs)
+        v0 = sc.linalg.lu_solve((lu, p), -vel_rhs)
+
         self._set_gen_velocities(v0)
-        self._vel_history[0] = v0
         
         acc_rhs = self._eval_acc_eq()
-        self._acc_history[0] = solve(A, -acc_rhs)
+        qdd = sc.linalg.lu_solve((lu, p), -acc_rhs)
+
+        lamda = self._eval_lagrange_multipliers(qdd, (lu, p))
+        
+        self._vel_history[0] = v0
+        self._acc_history[0] = qdd
+        self._lgr_history[0] = lamda
         
         print('\nRunning System Kinematic Analysis:')
-        bar_length = len(time_array)-1
-        for i,t in enumerate(time_array[1:]):
-            progress_bar(bar_length, i, t0, t)
+        bar_length = len(time_array)
+        self.i = i = 0
+        t = 0
+        while t < t_end:
+            self.i = i
+            t = time_array[i+1]
+
+            progress_bar(bar_length, i+1, t0, t+dt)
             self._set_time(t)
 
-            g =   self._pos_history[i] \
-                + self._vel_history[i]*dt \
-                + 0.5*self._acc_history[i]*(dt**2)
+            guess = self._q + self._qd*dt + 0.5*self._qdd*(dt**2)
             
-            self._solve_constraints(g)
-            self._pos_history[i+1] = self._pos
+            self._solve_constraints(guess)
+
             A = self._eval_jac_eq()
+            lu, p = self._factorize_jacobian(A)
             
             vel_rhs = self._eval_vel_eq()
-            vi = solve(A,-vel_rhs)
+            vi = sc.linalg.lu_solve((lu, p), -vel_rhs)
             self._set_gen_velocities(vi)
-            self._vel_history[i+1] = vi
 
             acc_rhs = self._eval_acc_eq()
-            self._acc_history[i+1] = solve(A,-acc_rhs)
+            qdd = sc.linalg.lu_solve((lu, p), -acc_rhs)
+            self._set_gen_accelerations(qdd)
+            
+            lamda = self._eval_lagrange_multipliers(qdd, (lu, p))
+
+            self._pos_history[i+1] = self._q.copy()
+            self._vel_history[i+1] = self._qd.copy()
+            self._acc_history[i+1] = self._qdd.copy()
+            self._lgr_history[i+1] = lamda
+
+            i += 1
         
         print('\n')
         self._creat_results_dataframes()    
     
     
-    def _eval_lagrange_multipliers(self, i):        
+    def _eval_lagrange_multipliers(self, qdd, jac):        
         applied_forces = self._eval_frc_eq()
         mass_matrix = self._eval_mass_eq()
-        jac = self._eval_jac_eq()
-        qdd = self._acc_history[i]
         inertia_forces = mass_matrix.dot(qdd)
         rhs = applied_forces - inertia_forces
-        lamda = solve(jac.T, rhs)
+        lamda = sc.linalg.lu_solve(jac, rhs, 1)
         return lamda
