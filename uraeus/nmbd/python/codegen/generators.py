@@ -150,9 +150,11 @@ class template_codegen(abstract_generator):
 
     def write_template_assembler(self):
         text = '''
-                def initialize(self):
+                def initialize(self, q, qd, qdd, lgr):
                     self.t = 0
                     self.assemble(self.indicies_map, {{}}, 0)
+                    self._set_states_arrays(q, qd, qdd, lgr)
+                    self._map_states_arrays()
                     self.set_initial_states()
                     self.eval_constants()
                                 
@@ -164,12 +166,22 @@ class template_codegen(abstract_generator):
                     self.jac_rows += self.rows_offset
                     self.jac_cols = np.array([{jac_cols}], dtype=np.intc)
                 
+                def _set_states_arrays(self, q, qd, qdd, lgr):
+                    self._q = q
+                    self._qd = qd
+                    self._qdd = qdd
+                    self._lgr = lgr
+                
+                def _map_states_arrays(self):
+                    self._map_gen_coordinates()
+                    self._map_gen_velocities()
+                    self._map_gen_accelerations()
+                    self._map_lagrange_multipliers()
+                
                 def set_initial_states(self):
-                    self.q0  = np.concatenate([{coordinates}])
-                    self.qd0 = np.concatenate([{velocities}])
+                    np.concatenate([{coordinates}], out=self._q)
 
-                    self.set_gen_coordinates(self.q0)
-                    self.set_gen_velocities(self.qd0)
+                    np.concatenate([{velocities}], out=self._qd)
                     
                 def _set_mapping(self,indicies_map, interface_map):
                     p = self.prefix
@@ -258,16 +270,16 @@ class template_codegen(abstract_generator):
         return text
 
     def write_coordinates_setter(self):
-        return self._write_x_setter('gen_coordinates','q')
+        return self._write_x_mapper('gen_coordinates','q')
     
     def write_velocities_setter(self):
-        return self._write_x_setter('gen_velocities','qd')
+        return self._write_x_mapper('gen_velocities','qd')
     
     def write_accelerations_setter(self):
-        return self._write_x_setter('gen_accelerations','qdd')
+        return self._write_x_mapper('gen_accelerations','qdd')
     
     def write_lagrange_setter(self):
-        return self._write_x_setter('lagrange_multipliers','Lambda')
+        return self._write_x_mapper('lagrange_multipliers','Lambda')
         
     def write_pos_equations(self):
         return self._write_x_equations('pos')
@@ -396,11 +408,12 @@ class template_codegen(abstract_generator):
     ###########################################################################
     ###########################################################################
 
-    def _write_x_setter(self,func_name,var='q'):
+    def _write_x_mapper(self, func_name, var):
         text = '''
-                def set_%s(self,%s):
+                def _map_%s(self):
+                    %s = self._%s
                     {equalities}
-               '''%(func_name,var)
+               '''%(func_name, var, 'lgr' if var == 'Lambda' else var)
         
         text = text.expandtabs()
         text = textwrap.dedent(text)

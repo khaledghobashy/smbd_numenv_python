@@ -15,6 +15,12 @@ import numpy as np
 def multi_dot(arrays): 
     return functools.reduce(np.dot, arrays)
 
+#@numba.njit(cache=True, nogil=True)
+def matrix_assembler(mat, data, rows, cols, shape):
+    n_rows = shape[0]
+    e_data, e_rows, e_cols = sparse_assembler(data, rows, cols, n_rows)
+    mat[e_rows, e_cols] = e_data
+
 
 @numba.njit(cache=True, nogil=True)
 def sparse_assembler(blocks, b_rows, b_cols, n_rows):
@@ -43,9 +49,6 @@ def sparse_assembler(blocks, b_rows, b_cols, n_rows):
         
         arr = blocks[v]
         m, n = arr.shape
-
-        if not np.any(arr):
-            continue
         
         if n == 3:
             prev_cols_size = 7*(vj//2)
@@ -63,32 +66,19 @@ def sparse_assembler(blocks, b_rows, b_cols, n_rows):
     return e_data, e_rows, e_cols
 
 
-@numba.njit(cache=True, nogil=True)
+@numba.njit(cache=True, nogil=True, parallel=True)
 def update_arrays(e_data, e_rows, e_cols, m, n, r, c, arr, nnz_counter):
     
     for i in range(m):
         for j in range(n):
             value = arr[i,j]
-            if abs(value)> 1e-5:
-                e_rows[nnz_counter] = (r + i)
-                e_cols[nnz_counter] = (c + j)
-                e_data[nnz_counter] = (value)
-                
-                nnz_counter += 1
+            #if abs(value)> 1e-5:
+            e_rows[nnz_counter] = (r + i)
+            e_cols[nnz_counter] = (c + j)
+            e_data[nnz_counter] = (value)
+            nnz_counter += 1
     
     return nnz_counter
-
-
-def matrix_assembler(data, rows, cols, shape):
-    
-    n_rows = shape[0]
-
-    e_data, e_rows, e_cols = sparse_assembler(data, rows, cols, n_rows)
-    
-    mat = np.zeros(shape)
-    mat[e_rows, e_cols] = e_data
-    
-    return mat
 
 
 @numba.njit(cache=True, nogil=True)
@@ -149,7 +139,7 @@ def dcm2ep(dcm):
     p = np.array([[e0],[e1],[e2],[e3]])
     return p
 
-@numba.njit(cache=True, nogil=True)
+@numba.njit(cache=True, nogil=True, fastmath=True)
 def E(p):
     ''' 
     A property matrix of euler parameters. Mostly used to transform between the
@@ -176,7 +166,7 @@ def E(p):
     m = np.concatenate((-e, (e0 * I) + skew_matrix(e)), axis=1)
     return m
 
-@numba.njit(cache=True, nogil=True)
+@numba.njit(cache=True, nogil=True, fastmath=True)
 def G(p):
     # Note: This is half the G_bar given in shabana's book
     ''' 
@@ -205,7 +195,7 @@ def G(p):
     m = np.concatenate((-e, (e0 * I) - skew_matrix(e)), axis=1)
     return m
 
-@numba.njit(cache=True, nogil=True)
+@numba.njit(cache=True, nogil=True, fastmath=True)
 def A(p):
     '''
     evaluating the transformation matrix as a function of euler parameters
@@ -223,7 +213,7 @@ def A(p):
     return m
 
 
-@numba.njit(cache=True, nogil=True)
+@numba.njit(cache=True, nogil=True, fastmath=True)
 def B(p,a):
     ''' 
     This matrix represents the variation of the body orientation with respect

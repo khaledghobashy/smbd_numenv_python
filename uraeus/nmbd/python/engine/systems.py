@@ -200,7 +200,7 @@ class assembly(object):
         self.interface_map = assembly_data['interface_map']
         self.indicies_map  = assembly_data['nodes_indicies']
         self.mapped_vir_coordinates  = assembly_data['mapped_vir_coordinates']
-        self.mapped_vir_velocities  = assembly_data['mapped_vir_velocities']
+        self.mapped_vir_velocities   = assembly_data['mapped_vir_velocities']
         self.mapped_vir_accelerations  = assembly_data['mapped_vir_accelerations']
 
         self.nrows = sum([sub.nrows for sub in self.subsystems]) + 2
@@ -245,18 +245,36 @@ class assembly(object):
             json_text = f.read()
         data_dict = json.loads(json_text)
         return data_dict
+    
+    def initialize(self, q, qd, qdd, lgr):
+        self.t = 0
+        self.assemble()
+        self._set_states_arrays(q, qd, qdd, lgr)
+        self._map_states_arrays()
+        self.set_initial_states()
+        self.eval_constants()
+
+    def _set_states_arrays(self, q, qd, qdd, lgr):
+        self._q = q
+        self._qd = qd
+        self._qdd = qdd
+        self._lgr = lgr
+    
+    def _map_states_arrays(self):
+        self._map_gen_coordinates()
+        self._map_gen_velocities()
+        self._map_gen_accelerations()
+        self._map_lagrange_multipliers()
 
     def set_initial_states(self):
         for sub in self.subsystems:
             sub.set_initial_states()
-        coordinates = [sub.q0 for sub in self.subsystems if len(sub.q0)!=0]
-        self.q0 = np.concatenate([self.R_ground, self.P_ground, *coordinates])
+        coordinates = [sub._q for sub in self.subsystems if len(sub._q)!=0]
+        np.concatenate([self.R_ground, self.P_ground, *coordinates], out=self._q)
 
-    def initialize(self):
-        self.t = 0
-        self.assemble()
-        self.set_initial_states()
-        self.eval_constants()
+        veolicties = [sub._qd for sub in self.subsystems if len(sub._qd)!=0]
+        np.concatenate([self.Rd_ground, self.Pd_ground, *veolicties], out=self._qd)
+
 
     def assemble(self):
         offset = 2
@@ -268,9 +286,9 @@ class assembly(object):
         self.jac_rows = np.concatenate([s.jac_rows for s in self.subsystems])
         self.jac_cols = np.concatenate([s.jac_cols for s in self.subsystems])
 
-        self.rows = np.concatenate([self.gr_rows,self.rows])
-        self.jac_rows = np.concatenate([self.gr_jac_rows,self.jac_rows])
-        self.jac_cols = np.concatenate([self.gr_jac_cols,self.jac_cols])
+        self.rows = np.concatenate([self.gr_rows, self.rows])
+        self.jac_rows = np.concatenate([self.gr_jac_rows, self.jac_rows])
+        self.jac_cols = np.concatenate([self.gr_jac_cols, self.jac_cols])
 
         self.reactions_indicies = sum([sub.reactions_indicies for sub in self.subsystems],[])
 
@@ -292,41 +310,49 @@ class assembly(object):
         for sub in self.subsystems:
             sub.eval_constants()
 
-    def set_gen_coordinates(self,q):
+    def _map_gen_coordinates(self):
+        q = self._q
         self.R_ground = q[0:3]
         self.P_ground = q[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = q[offset:sub.n+offset]
-            sub.set_gen_coordinates(qs)
+            qs = q[offset: sub.n+offset]
+            sub._q = qs
+            sub._map_gen_coordinates()
             offset += sub.n
         self._map_coordinates(self.mapped_vir_coordinates)
 
-    def set_gen_velocities(self,qd):
+    def _map_gen_velocities(self):
+        qd = self._qd
         self.Rd_ground = qd[0:3]
         self.Pd_ground = qd[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = qd[offset:sub.n+offset]
-            sub.set_gen_velocities(qs)
+            qs = qd[offset: sub.n+offset]
+            sub._qd = qs
+            sub._map_gen_velocities()
             offset += sub.n
         self._map_coordinates(self.mapped_vir_velocities)
 
-    def set_gen_accelerations(self,qdd):
+    def _map_gen_accelerations(self):
+        qdd = self._qdd
         self.Rdd_ground = qdd[0:3]
         self.Pdd_ground = qdd[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = qdd[offset:sub.n+offset]
-            sub.set_gen_accelerations(qs)
+            qs = qdd[offset: sub.n + offset]
+            sub._qdd = qs
+            sub._map_gen_accelerations()
             offset += sub.n
         self._map_coordinates(self.mapped_vir_accelerations)
 
-    def set_lagrange_multipliers(self,Lambda):
+    def _map_lagrange_multipliers(self):
+        Lambda = self._lgr
         offset = 7
         for sub in self.subsystems:
-            l = Lambda[offset:sub.nc+offset]
-            sub.set_lagrange_multipliers(l)
+            l = Lambda[offset: sub.nc + offset]
+            sub._lgr = l
+            sub._map_lagrange_multipliers()
             offset += sub.nc
 
     def eval_pos_eq(self):

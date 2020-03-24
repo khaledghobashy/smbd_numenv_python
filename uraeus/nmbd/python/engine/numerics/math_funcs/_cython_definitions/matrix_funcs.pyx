@@ -6,6 +6,7 @@
 #cython: cdivision=True
 
 cimport cython
+from cython cimport view
 cimport numpy as cnp
 from cpython cimport array
 
@@ -187,27 +188,25 @@ cpdef triad(double[:,:] v1, double[:,:] v2=None):
 @cython.boundscheck(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cpdef matrix_assembler(tuple data, int[:] rows, int[:] cols, tuple shape):
+cpdef void matrix_assembler(double[:,:] mat, tuple data, int[:] rows, int[:] cols, tuple shape):
     
     cdef:
         int n_rows = shape[0]
         int i, k
-        double[:] e_data = np.zeros((14*n_rows, ), dtype=np.float64)
-        int[:] e_rows = np.zeros((14*n_rows, ), dtype=np.int32)
-        int[:] e_cols = np.zeros((14*n_rows, ), dtype=np.int32)
-
-        mat = np.zeros(shape, dtype=np.float64)
-        double[:, ::1] view = mat
+        e_data = view.array(shape=(3, 14*n_rows), itemsize=sizeof(double), format="d")
+        double[:,:] explicit_data = e_data
     
-    k = sparse_assembler(data, rows, cols, e_data, e_rows, e_cols)
-    construct_matrix(view, e_data, e_rows, e_cols, k)    
-    return mat
+    k = sparse_assembler(data, rows, cols, explicit_data)
+    construct_matrix(mat, explicit_data, k)    
+    #return mat
 
 
-cdef void construct_matrix(double[:,:] view, double[:] e_data, int[:] e_rows, int[:] e_cols, int k) nogil:
-    cdef int i
-    for i in prange(k, nogil=True):
-        view[e_rows[i], e_cols[i]] = e_data[i]
+cdef void construct_matrix(double[:,:] view, double[:,:] explicit_data, int k):
+    cdef int i, r, c
+    for i in range(k):
+        r = <int> explicit_data[0,i]
+        c = <int> explicit_data[1,i]
+        view[r, c] = explicit_data[2,i]
 
 
 @cython.wraparound(False)
@@ -215,7 +214,7 @@ cdef void construct_matrix(double[:,:] view, double[:] e_data, int[:] e_rows, in
 @cython.nonecheck(False)
 @cython.cdivision(True)
 cdef int sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
-                       double[:] e_data, int[:] e_rows, int[:] e_cols):
+                       double[:,:] explicit_data):
     
     cdef:
         int row_counter = 0
@@ -246,7 +245,7 @@ cdef int sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
         elif n == 4:
             prev_cols_size = 7*(vj//2) + 3
         
-        nnz_counter = update_arrays(e_data, e_rows, e_cols, m, n, 
+        nnz_counter = update_arrays(explicit_data, m, n, 
                       prev_rows_size, prev_cols_size, arr, 
                       nnz_counter)    
     return nnz_counter
@@ -256,8 +255,8 @@ cdef int sparse_assembler(tuple blocks, int[:] b_rows, int[:] b_cols,
 @cython.boundscheck(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-cdef int update_arrays(double[:] e_data, int[:] e_rows, int[:] e_cols, 
-                       int m, int n, int r, int c, double[:,:] arr, int nnz_counter) nogil:
+cdef int update_arrays(double[:,:] explicit_data, 
+                       int m, int n, int r, int c, double[:,:] arr, int nnz_counter):
         
     cdef:
         int i, j
@@ -266,11 +265,10 @@ cdef int update_arrays(double[:] e_data, int[:] e_rows, int[:] e_cols,
     for i in range(m):
         for j in range(n):
             value = arr[i, j]
-            if fabs(value)> 1e-5:
-                e_rows[nnz_counter] = (r + i)
-                e_cols[nnz_counter] = (c + j)
-                e_data[nnz_counter] = (value)
-                
-                nnz_counter += 1
+            #if fabs(value)> 1e-5:
+            explicit_data[0, nnz_counter] = (r + i)
+            explicit_data[1, nnz_counter] = (c + j)
+            explicit_data[2, nnz_counter] = (value)
+            nnz_counter += 1
     return nnz_counter
 

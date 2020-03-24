@@ -23,8 +23,8 @@ class dds_solver(abstract_solver):
                   'analysis on such model.'
             raise ValueError(msg)
     
-    def _construct_constants(self):
-        super()._construct_constants()
+    def _construct_system_arrays(self):
+        super()._construct_system_arrays()
         self._Zncxnc = np.zeros((self.model.nc, self.model.nc))
         
 #    @profile
@@ -34,9 +34,10 @@ class dds_solver(abstract_solver):
         
         time_array = self.time_array
         dt = self.step_size
+        t_end = time_array[-1]
 
         # Getting the length of the time grid.
-        bar_length = len(time_array)-1
+        bar_length = len(time_array)
         
         print('\nStarting System Dynamic Analysis:')
         
@@ -57,7 +58,7 @@ class dds_solver(abstract_solver):
 
         # Evaluating the coefficient matrices at the initial
         # configuration
-        M, J, Qt, Qd = self._eval_augmented_matricies(pos_t0, vel_t0)
+        M, J, Qt, Qd = self._eval_augmented_matricies()
         
         # Solving the DAE system for the accelerations and lagrange 
         # multipliers.
@@ -76,18 +77,19 @@ class dds_solver(abstract_solver):
         y0 = np.concatenate([v, vd])
 
         # Initializing the integrator (time-stepper)
-        self.integrator = Explicit_RK23(self.SSODE, y0, 0, time_array[-1], dt)
+        self.integrator = Explicit_RK23(self.SSODE, y0, 0, t_end, dt)
         
         # Starting the simulation main loop
         print('\nRunning System Dynamic Analysis:')
         self.i = i = 0
-        while i != bar_length:
+        t = 0
+        while t < t_end:
             self.i = i
             self._set_simulation_step()
 
             t = time_array[i+1]
             # Updating the progress bar
-            progress_bar(bar_length, i, t0, t)
+            progress_bar(bar_length, i+1, t0, t+dt)
             
             # Re-Partition the system coordinates based on the latest
             # evaluation of the constraints jacobian
@@ -130,10 +132,10 @@ class dds_solver(abstract_solver):
         
         # Storing the latset computed states in their corresponding
         # containers. These are evaluaed inside the SSODE method
-        self._pos_history[i+1] = self._q_new
-        self._vel_history[i+1] = self._qd_new
-        self._acc_history[i+1] = self._qdd_new
-        self._lgr_history[i+1] = self._lgr_new
+        self._pos_history[i+1] = self._q.copy()
+        self._vel_history[i+1] = self._qd.copy()
+        self._acc_history[i+1] = self._qdd.copy()
+        self._lgr_history[i+1] = self._lgr.copy()
         
 #    @profile
     def SSODE(self, state_vector, t, i, h):
@@ -160,9 +162,6 @@ class dds_solver(abstract_solver):
         # Solving the constraints equations based on the given guessed 
         # configuration.
         self._solve_constraints(guess)
-        q_i = self._pos
-        # Setting the current system generalized coordinates
-        self._set_gen_coordinates(q_i)
         
         # Evaluating the rhs of the velocity constraint equations
         vel_rhs = self._eval_vel_eq(y2)
@@ -180,21 +179,16 @@ class dds_solver(abstract_solver):
         # Solving the DAE system for the accelerations and lagrange 
         # multipliers.
         qdd_i, lamda_i = self._solve_augmented_system(M, J, Qt, Qd)
+
+        self._set_gen_accelerations(qdd_i)
+        self._set_lagrange_multipliers(lamda_i)
         
         # Extracting the independent accelerations based on the 
         # latest coordinates partiotioning
         y3 = self.get_indpenednt_q(qdd_i)
         
         # Constructing the rhs dy/dt vector
-        rhs_vector = np.concatenate([y2, y3])
-
-        # Storing the latest computed states in private variables
-        # for usage in the main _solve_time_step method
-        self._q_new   = q_i
-        self._qd_new  = qd_i
-        self._qdd_new = qdd_i
-        self._lgr_new = lamda_i
-        
+        rhs_vector = np.concatenate([y2, y3])        
         return rhs_vector
         
 
@@ -207,13 +201,11 @@ class dds_solver(abstract_solver):
     def _partition_system_coordinates(self, jacobian=None):
         A = super()._eval_jac_eq() if jacobian is None else jacobian
         rows, cols = A.shape
-        permutaion_mat = sc.linalg.lu(A.T)[0]
+        permutaion_mat, l, u = sc.linalg.lu(A.T)
         self.independent_cols = permutaion_mat[:, rows:]
         self.permutaion_mat   = permutaion_mat.T
 
-    def _eval_augmented_matricies(self, q , qd):
-        self._set_gen_coordinates(q)
-        self._set_gen_velocities(qd)
+    def _eval_augmented_matricies(self):
         J  = super()._eval_jac_eq()
         M  = self._eval_mass_eq()
         Qt = self._eval_frc_eq()
@@ -222,15 +214,15 @@ class dds_solver(abstract_solver):
     
         
     def _solve_augmented_system(self, M, J, Qt, Qd):
-        
-        z = self._Zncxnc #np.zeros((self.model.nc, self.model.nc))
-        u = np.concatenate([M, J.T], axis=1)
-        l = np.concatenate([J, z], axis=1)
-        A = np.concatenate([u, l], axis=0)
+        n = self.model.n
+        self._coeff_matrix[0:n, 0:n] = M
+        self._coeff_matrix[0:n, n: ] = J.T
+        self._coeff_matrix[n: , 0:n] = J
+        A = self._coeff_matrix
         
         b = np.concatenate([Qt, -Qd])
         x = solve(A, b)
-        n = self.model.n
+        
         accelerations = x[:n]
         lamda = x[n:]
         return accelerations, lamda
@@ -251,7 +243,6 @@ class dds_solver(abstract_solver):
         A = np.concatenate([super()._eval_jac_eq(), self.independent_cols.T])
         return A
     
-            
     def get_indpenednt_q(self, q):
         # Boolean matrix (ndof x n)
         P  = self.independent_cols.T

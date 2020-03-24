@@ -46,24 +46,37 @@ class abstract_solver(object):
     
     def __init__(self, model):
         self.model = model
+        self._construct_system_arrays()
         self._initialize_model()
         self._create_indicies()
         self._construct_containers()
-        self._construct_constants()
     
-    def _construct_constants(self):
+    def _construct_system_arrays(self):
+        n  = self.model.n
+        nc = self.model.nc
+        self._q   = np.zeros((n, 1), dtype=np.float64)
+        self._qd  = np.zeros((n, 1), dtype=np.float64)
+        self._qdd = np.zeros((n, 1), dtype=np.float64)
+
+        self._lgr = np.zeros((nc, 1), dtype=np.float64)
+        #self._pos_m = np.zeros((nc, 1), dtype=np.float64)
+        #self._vel_m = np.zeros((nc, 1), dtype=np.float64)
+        #self._acc_m = np.zeros((nc, 1), dtype=np.float64)
+
+        self._jac_ = np.zeros((nc, n), dtype=np.float64)
+        self._mass = np.zeros((n, n), dtype=np.float64)
         self._mass_matrix_rows = np.arange(self.model.ncols, dtype=np.intc)
+
+        self._coeff_matrix = np.zeros((n + nc, n + nc), dtype=np.float64)
+        
         
     def set_initial_states(self, q, qd):
-        assert q.shape == self.model.q0.shape
-        assert qd.shape == self.model.q0.shape
-        
-        self._q0  = q
-        self._qd0 = qd
-        self.model.set_gen_coordinates(self._q0)
-        self.model.set_gen_velocities(self._qd0)
-        self._pos_history[0] = self._q0
-        self._vel_history[0] = self._qd0
+        assert q.shape  == self._q.shape
+        assert qd.shape == self._q.shape
+        self._set_gen_coordinates(q)
+        self._set_gen_velocities(qd)
+        self._pos_history[0] = q.copy()
+        self._vel_history[0] = qd.copy()
 
             
     def set_time_array(self, duration, spacing):
@@ -79,7 +92,7 @@ class abstract_solver(object):
         self.step_size  = step_size
 
         self._construct_containers(time_array.size)
-        self.set_initial_states(self.model.q0, 0*self.model.q0)
+        self.set_initial_states(self.model._q, self.model._qd)
     
     
     def eval_reactions(self):
@@ -88,31 +101,29 @@ class abstract_solver(object):
         bar_length = len(time_array)
         print("\nEvaluating System Constraints' Forces.")
         t0 = time.perf_counter()
+        dt = self.step_size
         for i, t in enumerate(time_array):
-            progress_bar(bar_length, i, t0, t)
+            # Updating the progress bar
+            progress_bar(bar_length, i, t0, t+dt)
             self._set_time(t)
             self._set_gen_coordinates(self._pos_history[i])
             self._set_gen_velocities(self._vel_history[i])
             self._set_gen_accelerations(self._acc_history[i])
-            lamda = self._eval_lagrange_multipliers(i)
-            self.model.set_lagrange_multipliers(lamda)
+            self._lgr.flat = self._eval_lagrange_multipliers(i)
             reactions = self._eval_reactions_eq()
             self._reactions[i] = reactions
         
-        self.values = {i:np.concatenate(list(v.values())) for i,v in self._reactions.items()}
+        values = {i:np.concatenate(list(v.values())) for i,v in self._reactions.items()}
         
         self.reactions_dataframe = pd.DataFrame(
-                data = np.concatenate(list(self.values.values()),1).T,
+                data = np.concatenate(list(values.values()),1).T,
                 columns = self._reactions_indicies)
         self.reactions_dataframe['time'] = time_array
 
     
-    
     def _initialize_model(self):
         model = self.model
-        model.initialize()
-        q0 = model.q0
-        model.set_gen_coordinates(q0)
+        model.initialize(self._q, self._qd, self._qdd, self._lgr)
 
     def _create_indicies(self):
         model = self.model
@@ -169,13 +180,17 @@ class abstract_solver(object):
         self.model.t = t
     
     def _set_gen_coordinates(self, q):
-        self.model.set_gen_coordinates(q)
+        self._q[:] = q
     
     def _set_gen_velocities(self, qd):
-        self.model.set_gen_velocities(qd)
+        self._qd[:]  = qd
     
     def _set_gen_accelerations(self, qdd):
-        self.model.set_gen_accelerations(qdd)
+        self._qdd[:] = qdd
+    
+    def _set_lagrange_multipliers(self, lgr):
+        self._lgr[:] = lgr
+
     
     def _eval_pos_eq(self):
         self.model.eval_pos_eq()
@@ -186,7 +201,7 @@ class abstract_solver(object):
     def _eval_vel_eq(self):
         self.model.eval_vel_eq()
         data = self.model.vel_eq_blocks
-        mat = self._assemble_equations(data)
+        mat  = self._assemble_equations(data)
         return mat
         
     def _eval_acc_eq(self):
@@ -201,16 +216,16 @@ class abstract_solver(object):
         cols = self.model.jac_cols
         data = self.model.jac_eq_blocks
         shape = (self.model.nc, self.model.n)
-        mat = matrix_assembler(data, rows, cols, shape)
-        return mat
+        matrix_assembler(self._jac_, data, rows, cols, shape)
+        return self._jac_
     
     def _eval_mass_eq(self):
         self.model.eval_mass_eq()
         data = self.model.mass_eq_blocks
         n = self.model.n
         rows = cols = self._mass_matrix_rows
-        mat = matrix_assembler(data, rows, cols, (n, n))
-        return mat
+        matrix_assembler(self._mass, data, rows, cols, (n, n))
+        return self._mass
     
     def _eval_frc_eq(self):
         self.model.eval_frc_eq()
@@ -249,7 +264,6 @@ class abstract_solver(object):
                 raise ValueError("Iterations exceded \n")
                 break
             itr+=1
-        self._pos = guess
         self._jac = self._eval_jac_eq()
 
     def _factorize_jacobian(self, jacobian):
