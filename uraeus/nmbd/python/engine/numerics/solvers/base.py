@@ -107,8 +107,6 @@ class abstract_solver(object):
             progress_bar(bar_length, i, t0, t+dt)
             self._set_time(t)
             self._set_gen_coordinates(self._pos_history[i])
-            self._set_gen_velocities(self._vel_history[i])
-            self._set_gen_accelerations(self._acc_history[i])
             self._set_lagrange_multipliers(self._lgr_history[i])
             reactions = self._eval_reactions_eq()
             self._reactions[i] = reactions
@@ -256,12 +254,14 @@ class abstract_solver(object):
             b = self._eval_pos_eq()
             delta_q = sc.linalg.lu_solve((lu, p), -b)
             
-            if itr%5==0 and itr!=0:
+            if (itr % 10) == 0 and itr != 0:
+                #print('Updating Jacobian\n')
+                A = self._eval_jac_eq()
                 lu, p = self._factorize_jacobian(A)
                 delta_q = sc.linalg.lu_solve((lu, p), -b)
-            if itr>50:
+            if itr > 50:
                 print("Iterations exceded \n")
-                raise ValueError("Iterations exceded \n")
+                #raise ValueError("Iterations exceded \n")
                 break
             itr+=1
         self._jac = self._eval_jac_eq()
