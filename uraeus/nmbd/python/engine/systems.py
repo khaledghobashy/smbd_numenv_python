@@ -22,6 +22,18 @@ from .numerics.solvers import kds_solver, dds_solver
 from .numerics.math_funcs import G
 from .utilities.decoders import JSON_Decoder
 
+# =============================================================================
+
+# Helper function to import the generated numerical python module
+# from the generated script file
+def import_source(source_dir, model_name):
+    source_file = os.path.join(source_dir, '%s.py'%model_name)
+    # importing the topology source file 
+    spec  = importlib.util.spec_from_file_location(model_name, source_file)
+    model = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(model)
+    return model
+
 ###############################################################################
 
 class multibody_system(object):
@@ -186,10 +198,11 @@ def subsystems_creator(mapping, templates_dir):
     container = namedtuple('Subsystems', mapping.keys())
     data = {}
     for subsystem, template in mapping.items():
-        spec = importlib.util.spec_from_file_location(template, f"{templates_dir}/{template}.py")
-        foo = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(foo)
-        data[subsystem] = foo.topology(subsystem)
+        model = import_source(templates_dir, template)
+        #spec = importlib.util.spec_from_file_location(template, f"{templates_dir}/{template}.py")
+        #foo = importlib.util.module_from_spec(spec)
+        #spec.loader.exec_module(foo)
+        data[subsystem] = model.topology(subsystem)
     return container(**data)
 
 class assembly(object):
