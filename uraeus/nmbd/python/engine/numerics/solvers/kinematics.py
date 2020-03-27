@@ -62,7 +62,7 @@ class kds_solver(abstract_solver):
             
             self._solve_constraints(guess)
 
-            A = self._eval_jac_eq()
+            A = self._jac
             lu, p = self._factorize_jacobian(A)
             
             vel_rhs = self._eval_vel_eq()
