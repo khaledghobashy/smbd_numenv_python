@@ -70,7 +70,6 @@ class standalone_project(object):
         file_name = src_path
         with open(file_name, 'w') as file:
             file.write('#')
-        
 
 
 class templatebased_project(object):
