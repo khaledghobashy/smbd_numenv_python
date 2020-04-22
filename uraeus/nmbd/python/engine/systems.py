@@ -282,10 +282,10 @@ class assembly(object):
     def set_initial_states(self):
         for sub in self.subsystems:
             sub.set_initial_states()
-        coordinates = [sub._q for sub in self.subsystems if len(sub._q)!=0]
+        coordinates = [sub._q for sub in self.subsystems if sub.n != 0]
         np.concatenate([self.R_ground, self.P_ground, *coordinates], out=self._q)
 
-        veolicties = [sub._qd for sub in self.subsystems if len(sub._qd)!=0]
+        veolicties = [sub._qd for sub in self.subsystems if sub.n != 0]
         np.concatenate([self.Rd_ground, self.Pd_ground, *veolicties], out=self._qd)
 
 
@@ -329,10 +329,11 @@ class assembly(object):
         self.P_ground = q[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = q[offset: sub.n+offset]
-            sub._q = qs
-            sub._map_gen_coordinates()
-            offset += sub.n
+            if sub.n != 0:
+                qs = q[offset: sub.n+offset]
+                sub._q = qs
+                sub._map_gen_coordinates()
+                offset += sub.n
         self._map_coordinates(self.mapped_vir_coordinates)
 
     def _map_gen_velocities(self):
@@ -341,10 +342,11 @@ class assembly(object):
         self.Pd_ground = qd[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = qd[offset: sub.n+offset]
-            sub._qd = qs
-            sub._map_gen_velocities()
-            offset += sub.n
+            if sub.n != 0:
+                qs = qd[offset: sub.n+offset]
+                sub._qd = qs
+                sub._map_gen_velocities()
+                offset += sub.n
         self._map_coordinates(self.mapped_vir_velocities)
 
     def _map_gen_accelerations(self):
@@ -353,10 +355,11 @@ class assembly(object):
         self.Pdd_ground = qdd[3:7]
         offset = 7
         for sub in self.subsystems:
-            qs = qdd[offset: sub.n + offset]
-            sub._qdd = qs
-            sub._map_gen_accelerations()
-            offset += sub.n
+            if sub.n != 0:
+                qs = qdd[offset: sub.n + offset]
+                sub._qdd = qs
+                sub._map_gen_accelerations()
+                offset += sub.n
         self._map_coordinates(self.mapped_vir_accelerations)
 
     def _map_lagrange_multipliers(self):

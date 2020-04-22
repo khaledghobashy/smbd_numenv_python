@@ -240,7 +240,8 @@ class dds_solver(abstract_solver):
         return A
     
     def _eval_jac_eq(self):
-        A = np.concatenate([super()._eval_jac_eq(), self.independent_cols.T])
+        A = np.concatenate([super()._eval_jac_eq(), 
+                            self.independent_cols.T])
         return A
     
     def get_indpenednt_q(self, q):
