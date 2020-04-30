@@ -325,8 +325,6 @@ class assembly(object):
 
     def _map_gen_coordinates(self):
         q = self._q
-        self.R_ground = q[0:3]
-        self.P_ground = q[3:7]
         offset = 7
         for sub in self.subsystems:
             if sub.n != 0:
