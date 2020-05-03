@@ -6,7 +6,7 @@
 
 **uraeus.nmbd.python** is a numerical simulation environment developed in python, that generates numerical object-oriented code from symbolic models developed in **[uraeus.smbd]( https://github.com/khaledghobashy/uraeus-smbd )**, and provides various numerical solvers for multi-body systems.
 
-*Please visit **[uraeus.mbd]( https://github.com/khaledghobashy/uraeus-mbd )** for more information about **audience** , **fields of applications** and **background**.*
+*Please visit **[uraeus.mbd]( https://github.com/khaledghobashy/uraeus_mbd )** for more information about **audience** , **fields of applications** and **background**.*
 
 ## Features
 
