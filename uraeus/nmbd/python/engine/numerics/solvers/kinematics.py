@@ -91,5 +91,6 @@ class kds_solver(abstract_solver):
         mass_matrix = self._eval_mass_eq()
         inertia_forces = mass_matrix.dot(qdd)
         rhs = applied_forces - inertia_forces
+        # Solving jac.T * lgr = rhs
         lamda = sc.linalg.lu_solve(jac, rhs, 1)
         return lamda
