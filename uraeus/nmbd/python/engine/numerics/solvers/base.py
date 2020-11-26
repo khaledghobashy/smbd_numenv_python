@@ -18,8 +18,12 @@ import numba
 #from scipy.sparse.linalg import spsolve
 
 # Local imports.
-#from ..math_funcs.numba_funcs import matrix_assembler
-from ..math_funcs._cython_definitions.matrix_funcs import matrix_assembler
+try:
+    from ..math_funcs._cython_definitions.matrix_funcs import matrix_assembler
+except ModuleNotFoundError:
+    print("Cythonized modules not found!")
+    print("Falling back to -less efficient- numba mode!")
+    from ..math_funcs.numba_funcs import matrix_assembler
 
 ###############################################################################
 ###############################################################################
