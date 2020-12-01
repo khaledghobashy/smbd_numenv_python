@@ -6,6 +6,8 @@ import time
 import numpy as np
 import scipy as sc
 
+from scipy import linalg
+
 # Local imports.
 from .base import abstract_solver, solve, progress_bar
 from .integrators import (Explicit_RK45, Explicit_RK23, 
@@ -201,7 +203,7 @@ class dds_solver(abstract_solver):
     def _partition_system_coordinates(self, jacobian=None):
         A = super()._eval_jac_eq() if jacobian is None else jacobian
         rows, cols = A.shape
-        permutaion_mat, l, u = sc.linalg.lu(A.T)
+        permutaion_mat, l, u = linalg.lu(A.T)
         self.independent_cols = permutaion_mat[:, rows:]
         self.permutaion_mat   = permutaion_mat.T
 
